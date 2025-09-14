@@ -1,3 +1,4 @@
+# Handles raw AMASS files, performing initial preprocessing, filtering, or extraction before conversion or fitting.
 # -*- coding: utf-8 -*-
 
 # Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V. (MPG) is

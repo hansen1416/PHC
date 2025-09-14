@@ -1,3 +1,4 @@
+# Converts AMASS data specifically into a format compatible with the Isaac Gym simulation environment, used by PHC.
 from ast import Try
 import torch
 import joblib

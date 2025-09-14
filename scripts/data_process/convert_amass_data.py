@@ -1,3 +1,4 @@
+# Converts AMASS motion capture data into a more usable or standardized format for the PHC pipeline.
 import glob
 import os
 import sys

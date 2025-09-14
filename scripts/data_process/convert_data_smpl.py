@@ -1,3 +1,4 @@
+# Converts or processes SMPL-format motion data for PHC, ensuring compatibility and correct structure.
 from ast import Try
 import torch
 import joblib

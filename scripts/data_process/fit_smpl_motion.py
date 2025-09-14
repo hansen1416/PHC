@@ -1,3 +1,4 @@
+# Fits SMPL motion data to a specific robot or character, optimizing joint angles and alignment for imitation learning.
 import glob
 import os
 import sys

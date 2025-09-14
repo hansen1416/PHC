@@ -1,3 +1,4 @@
+# Processes or converts motion data from the MDM (possibly "Motion Diffusion Model") format for use in PHC.
 from ast import Try
 import torch
 import joblib

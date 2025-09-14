@@ -1,3 +1,4 @@
+# Processes the entire AMASS motion database, possibly merging, cleaning, or extracting statistics/metadata for PHC.
 import glob
 import os
 import sys

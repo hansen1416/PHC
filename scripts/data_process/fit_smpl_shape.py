@@ -1,3 +1,4 @@
+# Optimizes or fits the shape parameters (body shape, betas) of SMPL models, likely for personalization or better matching.
 import glob
 import os
 import sys
