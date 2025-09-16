@@ -53,8 +53,13 @@ if __name__ == "__main__":
     if not osp.isdir(args.path):
         print("Please specify AMASS data path")
         import ipdb; ipdb.set_trace()
+
+    print("Processing AMASS data from:", args.path)
         
     all_pkls = glob.glob(f"{args.path}/**/*.npz", recursive=True)
+
+    print(f"Found {len(all_pkls)} npz files in total.")
+
     amass_occlusion = joblib.load("sample_data/amass_copycat_occlusion_v3.pkl")
     amass_full_motion_dict = {}
     amass_splits = {
@@ -63,12 +68,17 @@ if __name__ == "__main__":
         'train': ['CMU', 'MPI_Limits', 'TotalCapture', 'KIT',  'EKUT', 'TCD_handMocap', "BMLhandball", "DanceDB", "ACCAD", "BMLmovi", "BioMotionLab_NTroje", "Eyes_Japan_Dataset", "DFaust_67"]   # Adding ACCAD
     }
     process_set = amass_splits[process_split]
+
+    print(process_set)
+
     length_acc = []
     for data_path in tqdm(all_pkls):
         bound = 0
-        splits = data_path.split("/")[7:]
+
+        # splits = data_path.split("/")[7:]
+        splits = data_path.split("/")[8:]
         key_name_dump = "0-" + "_".join(splits).replace(".npz", "")
-        
+
         if (not splits[0] in process_set):
             continue
         
@@ -149,7 +159,9 @@ if __name__ == "__main__":
 
         amass_full_motion_dict[key_name_dump] = new_motion_out
         
-    import ipdb; ipdb.set_trace()
+    # show the size of amass_full_motion_dict
+    print(f"Total {len(amass_full_motion_dict)} sequences in {process_split} set after processing.")
+    # import ipdb; ipdb.set_trace()
     if upright_start:
         joblib.dump(amass_full_motion_dict, "data/amass/amass_train_take6_upright.pkl", compress=True)
     else:
