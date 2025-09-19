@@ -26,6 +26,11 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
+"""
+python phc/run_hydra.py learning=im_mcp     exp_name=phc_kp_mcp_iccv     test=True     env=env_im_getup_mcp     robot=smpl_humanoid     robot.freeze_hand=True     robot.box_body=False     env.z_activation=relu     env.motion_file=data/amass/individual/0-ACCAD_Male2General_c3d_A11-Crawl_poses.pkl env.models=['output/HumanoidIm/phc_kp_pnn_iccv/Humanoid.pth']     env.num_envs=1     env.obs_v=7     headless=False     epoch=-1
+"""
+
 import glob
 import os
 import sys

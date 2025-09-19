@@ -10,4 +10,7 @@ flags = Flags({
     'debug': False,
     "real_traj": False,
     "im_eval": False,
+    "no_virtual_display": False,
+    "divide_group": False,
+    "server_mode": False,
     })
