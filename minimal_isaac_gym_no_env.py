@@ -5,6 +5,13 @@ from isaacgym import gymapi, gymutil
 import numpy as np
 import math
 import os
+import joblib
+
+PHC_RESULT = os.path.join("/",
+    "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
+    "phc_kp_mcp_iccv", "phc_act", "0-ACCAD_Male2General_c3d_A11-Crawl_poses",
+    "noise_False_0.05_2025-09-17-21:24:04_np.pkl"
+)
 
 def main():
     # Parse CLI args (e.g., --graphics_device_id, --compute_device_id, --headless)
@@ -62,9 +69,11 @@ def main():
     # DOF drives: position control with modest stiffness/damping
     dof_props = gym.get_actor_dof_properties(env, actor)
     dof_props["driveMode"].fill(gymapi.DOF_MODE_POS)
-    dof_props["stiffness"].fill(80.0)
-    dof_props["damping"].fill(5.0)
+    # dof_props["driveMode"].fill(gymapi.DOF_MODE_EFFORT)
+    dof_props["stiffness"].fill(400.0)
+    dof_props["damping"].fill(40.0)
     gym.set_actor_dof_properties(env, actor, dof_props)
+
 
     # Initial DOF state (zeros)
     dof_states = gym.get_actor_dof_states(env, actor, gymapi.STATE_ALL)
@@ -79,24 +88,29 @@ def main():
     cam_pose.p = gymapi.Vec3(3.5, 3.5, 2.0)
     gym.viewer_camera_look_at(viewer, None, cam_pose.p, gymapi.Vec3(0,0,1.0))
 
+    data  = joblib.load(PHC_RESULT)
+    actions = data['clean_action'][0]   # (N, 69)
+
+    dprops = gym.get_actor_dof_properties(env, actor)
+    dof_count = len(dprops["driveMode"]) #  69
+
+    assert actions.shape[1] == dof_count, f"{actions.shape[1]} != {dof_count}"
+
     # --- simple motion: sinusoid on all hinge joints ---
-    t = 0.0
-    tgt = np.zeros(dof_count, dtype=np.float32)
-    amp = 0.25             # radians
-    freq = 0.6             # Hz
-    phase = np.linspace(0, math.pi, dof_count, dtype=np.float32)  # small phase offsets
 
     while not gym.query_viewer_has_closed(viewer):
-        t += sim_params.dt
-        tgt[:] = amp * np.sin(2*math.pi*freq*t + phase)
 
-        # send targets
-        gym.set_actor_dof_position_targets(env, actor, tgt)
+        for t in range(actions.shape[0]):
+            tgt = actions[t] * 10   # one frame of action
 
-        gym.simulate(sim)
-        gym.fetch_results(sim, True)
-        gym.step_graphics(sim)
-        gym.draw_viewer(viewer, sim, True)
+            gym.set_actor_dof_position_targets(env, actor, tgt)
+            # gym.set_dof_position_target_tensor(env, actor, tgt)
+
+            gym.simulate(sim)
+            gym.fetch_results(sim, True)
+            gym.step_graphics(sim)
+            gym.draw_viewer(viewer, sim, True)
+
 
     gym.destroy_viewer(viewer)
     gym.destroy_sim(sim)
