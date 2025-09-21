@@ -8,6 +8,15 @@ distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 Visualize motion library
+
+
+Module: vis_motion.py
+Description: Visualizes SMPL-based human motions using Isaac Gym. 
+oads an SMPL robot model, simulates physics,
+and animates motions from a library. Supports keyboard controls for motion switching and debugging.
+Dependencies: isaacgym, torch, numpy, joblib, etc.
+Usage: Run directly to start the simulation viewer.
+
 """
 import glob
 import os
@@ -25,6 +34,8 @@ from phc.utils.motion_lib_smpl import MotionLibSMPL as MotionLibSMPL
 from smpl_sim.smpllib.smpl_local_robot import SMPL_Robot
 from poselib.poselib.skeleton.skeleton3d import SkeletonTree
 from phc.utils.flags import flags
+from easydict import EasyDict
+from phc.utils.motion_lib_base import FixHeightMode
 
 flags.test = True
 flags.im_eval = True
@@ -194,6 +205,7 @@ gym.prepare_sim(sim)
 body_ids = np.array(body_ids)
 
 motion_file = "data/amass/pkls/amass_isaac_im_patch_upright_slim.pkl"
+motion_file = "data/amass/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl"
 # motion_file = "data/amass/pkls/amass_isaac_im_train_upright_slim.pkl"
 # motion_file = "data/amass/pkls/amass_isaac_locomotion_upright.pkl"
 # motion_file = "data/amass/pkls/amass_isaac_slowalk_upright.pkl"
@@ -233,7 +245,23 @@ else:
 
 device = (torch.device("cuda", index=0) if torch.cuda.is_available() else torch.device("cpu"))
 
-motion_lib = MotionLibSMPL(motion_file=motion_file, key_body_ids=body_ids, device=device, masterfoot_conifg=_masterfoot_config, fix_height=False, multi_thread=False)
+# motion_lib = MotionLibSMPL(motion_file=motion_file, key_body_ids=body_ids, device=device, masterfoot_conifg=_masterfoot_config, fix_height=False, multi_thread=False)
+
+motion_lib_cfg = EasyDict({
+                "motion_file": motion_file,
+                "device": torch.device("cpu"),
+                "fix_height": FixHeightMode.no_fix,
+                "min_length": -1,
+                "max_length": -1,
+                "im_eval": False,
+                "multi_thread": False ,
+                "smpl_type": "smpl",
+                "randomrize_heading": True,
+                "device": device,
+                "step_dt": 1/60,
+            })
+
+motion_lib = MotionLibSMPL(motion_lib_cfg)
 num_motions = 30
 curr_start = 0
 motion_lib.load_motions(skeleton_trees=[sk_tree] * num_motions, gender_betas=[torch.zeros(17)] * num_motions, limb_weights=[np.zeros(10)] * num_motions, random_sample=False)

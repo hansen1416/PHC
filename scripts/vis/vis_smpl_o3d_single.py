@@ -1,3 +1,10 @@
+"""
+Module: vis_smpl_o3d_single.py
+Description: Animates a single SMPL mesh in Open3D with uniform coloring.
+Supports recording and image capture.
+Dependencies: open3d, imageio, cv2, joblib, torch, numpy, etc.
+Usage: Run main() for viewer.
+"""
 import glob
 import os
 import sys

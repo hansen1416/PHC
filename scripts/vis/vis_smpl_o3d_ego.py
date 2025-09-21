@@ -1,3 +1,9 @@
+"""
+Module: vis_smpl_o3d_ego.py
+Description: Ego-centric SMPL visualization in Open3D with tracking spheres and optional textures.
+Dependencies: open3d, imageio, joblib, torch, numpy, etc.
+Usage: Run main() for viewer.
+"""
 import glob
 import os
 import sys

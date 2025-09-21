@@ -1,3 +1,10 @@
+"""
+Module: vis_smpl_o3d_multi.py
+Description: Renders multiple SMPL meshes in Open3D with color gradients for multi-frame visualization.
+Supports keyboard controls for pause, reset, recording, and image capture.
+Dependencies: open3d, imageio, cv2, joblib, torch, numpy, etc.
+Usage: Run main() to start viewer.
+"""
 import glob
 import os
 import sys

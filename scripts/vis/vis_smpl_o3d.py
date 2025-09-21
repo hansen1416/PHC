@@ -1,3 +1,11 @@
+"""
+Module: vis_smpl_o3d.py
+Description: Visualizes SMPL motions using Open3D. 
+Loads pose data from pickle files, generates textured meshes,
+and animates them with keyboard controls for interaction and video recording.
+Dependencies: open3d, imageio, joblib, torch, numpy, etc.
+Usage: Run main() to start the Open3D viewer.
+"""
 import glob
 import os
 import sys

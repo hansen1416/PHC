@@ -31,6 +31,8 @@ def main():
     sim_params.physx.solver_type = 1
     sim_params.physx.num_position_iterations = 4
     sim_params.physx.num_velocity_iterations = 1
+    sim_params.gravity = gymapi.Vec3(0.0, 0.0, -9.81)
+
     
 
     # Headless by default if you pass --headless; no viewer is opened.
@@ -53,8 +55,10 @@ def main():
     asset_root = os.path.join("phc", "data", "assets", "mjcf")
     asset_file = "smpl_humanoid.xml"     # from your repo
     opts = gymapi.AssetOptions()
-    opts.fix_base_link = True            # keep root fixed so it won't fall while we wiggle joints
-    opts.disable_gravity = True          # optional extra stability for this demo
+    # keep root fixed so it won't fall while we wiggle joints
+    opts.fix_base_link = False            
+    # optional extra stability for this demo
+    opts.disable_gravity = False          
     asset = gym.load_asset(sim, asset_root, asset_file, opts)
 
     dof_count = gym.get_asset_dof_count(asset)
@@ -70,8 +74,8 @@ def main():
     dof_props = gym.get_actor_dof_properties(env, actor)
     dof_props["driveMode"].fill(gymapi.DOF_MODE_POS)
     # dof_props["driveMode"].fill(gymapi.DOF_MODE_EFFORT)
-    dof_props["stiffness"].fill(400.0)
-    dof_props["damping"].fill(40.0)
+    dof_props["stiffness"].fill(4000.0)
+    dof_props["damping"].fill(400.0)
     gym.set_actor_dof_properties(env, actor, dof_props)
 
 
@@ -101,7 +105,7 @@ def main():
     while not gym.query_viewer_has_closed(viewer):
 
         for t in range(actions.shape[0]):
-            tgt = actions[t] * 10   # one frame of action
+            tgt = actions[t]   # one frame of action
 
             gym.set_actor_dof_position_targets(env, actor, tgt)
             # gym.set_dof_position_target_tensor(env, actor, tgt)
@@ -109,6 +113,7 @@ def main():
             gym.simulate(sim)
             gym.fetch_results(sim, True)
             gym.step_graphics(sim)
+            gym.sync_frame_time(sim)
             gym.draw_viewer(viewer, sim, True)
 
 

@@ -1,3 +1,10 @@
+"""
+Module: vis_motion_mj.py
+Description: Visualizes SMPL motions using MuJoCo. Loads motion library, simulates physics,
+and renders with keyboard controls for pausing and resetting.
+Dependencies: mujoco, torch, numpy, joblib, hydra, etc.
+Usage: Run directly to launch MuJoCo viewer.
+"""
 import os
 import sys
 import time

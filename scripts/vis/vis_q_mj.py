@@ -1,3 +1,10 @@
+"""
+Module: vis_q_mj.py
+Description: Visualizes joint positions (qpos) from motion data using MuJoCo and Hydra config.
+Supports keyboard controls for interaction.
+Dependencies: mujoco, hydra, torch, numpy, joblib, etc.
+Usage: Run with Hydra config to launch viewer.
+"""
 import os
 import sys
 import time
