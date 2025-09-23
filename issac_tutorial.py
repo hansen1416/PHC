@@ -8,7 +8,8 @@ import joblib
 import torch
 from isaacgym import gymtorch
 
-device = "cpu"
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
 
 def get_axis_params(value, axis_idx, x_value=0.0, dtype=float, n_dims=3):
     """construct arguments to `Vec` according to axis index."""
@@ -60,7 +61,38 @@ physics_engine = gymapi.SIM_PHYSX
 # create sim with these parameters
 sim = gym.create_sim(compute_device_id, graphics_device_id, physics_engine, sim_params)
 
-gym.prepare_sim(sim)
+
+
+# ---------- prepare assets and envs ----------------
+asset_root = os.path.join("phc", "data", "assets", "mjcf")
+asset_file = "smpl_humanoid.xml"
+asset = gym.load_asset(sim, asset_root, asset_file)
+
+# set up the env grid
+env_spacing = 2.0
+env_lower = gymapi.Vec3(-env_spacing, 0.0, -env_spacing)
+env_upper = gymapi.Vec3(env_spacing, env_spacing, env_spacing)
+
+# cache some common handles for later use
+env = gym.create_env(sim, env_lower, env_upper, 1)
+
+# ---------- prepare actor ----------------
+char_h = 0.89
+up_axis_idx = 2
+
+
+
+pos = torch.tensor(get_axis_params(char_h, up_axis_idx)).to(device)
+pos[:2] += torch_rand_float(-1., 1., (2, 1), device=device).squeeze(1)
+
+
+
+start_pose = gymapi.Transform()
+start_pose.p = gymapi.Vec3(*pos)
+start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+
+actor_handle = gym.create_actor(env, asset, start_pose, "MyActor", 0, 1)
+
 # The state of each root body is represented using 13 floats with the same layout 
 # as GymRigidBodyState: 3 floats for position, 4 floats for quaternion, 3 floats 
 # for linear velocity, and 3 floats for angular velocity.
@@ -74,6 +106,14 @@ root_positions = root_tensor[:, 0:3]
 root_orientations = root_tensor[:, 3:7]
 root_linvels = root_tensor[:, 7:10]
 root_angvels = root_tensor[:, 10:13]
+
+print("root_positions:", root_positions)
+print("root_orientations:", root_orientations)
+print("root_linvels:", root_linvels)
+print("root_angvels:", root_angvels)
+
+gym.prepare_sim(sim)
+
 
 
 
@@ -92,41 +132,17 @@ gym.add_ground(sim, plane_params)
 # asset_file = "urdf/franka_description/robots/franka_panda.urdf"
 # asset = gym.load_asset(sim, asset_root, asset_file)
 
-asset_root = os.path.join("phc", "data", "assets", "mjcf")
-asset_file = "smpl_humanoid.xml"
-asset = gym.load_asset(sim, asset_root, asset_file)
-
-# set up the env grid
-env_spacing = 2.0
-env_lower = gymapi.Vec3(-env_spacing, 0.0, -env_spacing)
-env_upper = gymapi.Vec3(env_spacing, env_spacing, env_spacing)
-
-# cache some common handles for later use
-env = gym.create_env(sim, env_lower, env_upper, 1)
-
-
-char_h = 0.89
-up_axis_idx = 2
-
-pos = torch.tensor(get_axis_params(char_h, up_axis_idx)).to(device)
-pos[:2] += torch_rand_float(-1., 1., (2, 1), device=device).squeeze(1)
-
-start_pose = gymapi.Transform()
-start_pose.p = gymapi.Vec3(*pos)
-start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
-
-actor_handle = gym.create_actor(env, asset, start_pose, "MyActor", 0, 1)
 
 props = gym.get_actor_dof_properties(env, actor_handle)
-props["driveMode"].fill(gymapi.DOF_MODE_EFFORT)
-# props["driveMode"].fill(gymapi.DOF_MODE_POS)
+# props["driveMode"].fill(gymapi.DOF_MODE_EFFORT)
+props["driveMode"].fill(gymapi.DOF_MODE_POS)
 # props["driveMode"].fill(gymapi.DOF_MODE_VEL)
 props["stiffness"].fill(0.0)
 props["damping"].fill(0.0)
 gym.set_actor_dof_properties(env, actor_handle, props)
 
-lower_limits = props['lower']
-upper_limits = props['upper']
+# lower_limits = props['lower']
+# upper_limits = props['upper']
 
 cam_props = gymapi.CameraProperties()
 viewer = gym.create_viewer(sim, cam_props)
@@ -135,7 +151,22 @@ cam_pos = gymapi.Vec3(5.0, 0.0, 3.0)  # Camera position (x=2, y=2, z=2 or any de
 cam_target = gymapi.Vec3(0.0, 0.0, 0.0)  # Point for camera to look at (x=0, y=0, z=0 or any desired values)
 gym.viewer_camera_look_at(viewer, None, cam_pos, cam_target)
 
+
+# refresh the state tensors
+gym.refresh_actor_root_state_tensor(sim)
+
 num_dofs = gym.get_actor_dof_count(env, actor_handle)
+
+
+
+
+_dof_states = gym.acquire_dof_state_tensor(sim)
+# (num_dofs, 2). The state of each DOF is represented using 2 floats: position and velocity.
+dof_states = gymtorch.wrap_tensor(_dof_states)
+
+gym.set_dof_state_tensor(sim, _dof_states)
+
+
 
 
 PHC_RESULT = os.path.join("/",
@@ -162,18 +193,32 @@ assert actions.shape[1] == dof_count, f"{actions.shape[1]} != {dof_count}"
 # targets = np.random.uniform(low=lower_limits, high=upper_limits, size=num_dofs).astype(np.float32)
 # vel_targets = np.random.uniform(-math.pi, math.pi, num_dofs).astype(np.float32)
 
+# actions to tensor
+actions = torch.tensor(actions, dtype=torch.float32).to(device)
+
 while not gym.query_viewer_has_closed(viewer):
 
     for t in range(actions.shape[0]):
-        targets = actions[t]   # one frame of action
+        # targets = actions[t]   # one frame of action
         # gym.set_actor_dof_position_targets(env, actor_handle, targets)
+        
+        # print(111111111)
 
-        gym.apply_actor_dof_efforts(env, actor_handle, targets)
+        # # make random tensor
+        pd_tar_tensor = gymtorch.unwrap_tensor(actions[t])
+
+        # print(pd_tar_tensor.shape)
+
+        # gym.apply_actor_dof_efforts(env, actor_handle, targets)
         # gym.set_actor_dof_position_targets(env, actor_handle, targets)
         # gym.set_actor_dof_velocity_targets(env, actor_handle, vel_targets)
 
+        gym.set_dof_position_target_tensor(sim, pd_tar_tensor)
+
         # step the physics
         gym.simulate(sim)
+
+
         gym.fetch_results(sim, True)
 
         # update the viewer
