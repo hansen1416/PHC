@@ -55,10 +55,10 @@ def main():
     asset_root = os.path.join("phc", "data", "assets", "mjcf")
     asset_file = "smpl_humanoid.xml"     # from your repo
     opts = gymapi.AssetOptions()
-    # keep root fixed so it won't fall while we wiggle joints
-    opts.fix_base_link = False            
-    # optional extra stability for this demo
-    opts.disable_gravity = False          
+    # # keep root fixed so it won't fall while we wiggle joints
+    # opts.fix_base_link = False            
+    # # optional extra stability for this demo
+    # opts.disable_gravity = False          
     asset = gym.load_asset(sim, asset_root, asset_file, opts)
 
     dof_count = gym.get_asset_dof_count(asset)
@@ -74,8 +74,8 @@ def main():
     dof_props = gym.get_actor_dof_properties(env, actor)
     dof_props["driveMode"].fill(gymapi.DOF_MODE_POS)
     # dof_props["driveMode"].fill(gymapi.DOF_MODE_EFFORT)
-    dof_props["stiffness"].fill(4000.0)
-    dof_props["damping"].fill(400.0)
+    dof_props["stiffness"].fill(0.0)
+    dof_props["damping"].fill(0.0)
     gym.set_actor_dof_properties(env, actor, dof_props)
 
 
