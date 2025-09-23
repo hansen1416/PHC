@@ -82,13 +82,13 @@ up_axis_idx = 2
 
 
 
-pos = torch.tensor(get_axis_params(char_h, up_axis_idx)).to(device)
-pos[:2] += torch_rand_float(-1., 1., (2, 1), device=device).squeeze(1)
+# pos = torch.tensor(get_axis_params(char_h, up_axis_idx)).to(device)
+# pos[:2] += torch_rand_float(-1., 1., (2, 1), device=device).squeeze(1)
 
 
 
 start_pose = gymapi.Transform()
-start_pose.p = gymapi.Vec3(*pos)
+start_pose.p = gymapi.Vec3(0.0, 0.0, 0.84)
 start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
 actor_handle = gym.create_actor(env, asset, start_pose, "MyActor", 0, 1)
