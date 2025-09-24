@@ -130,6 +130,52 @@ class Humanoid(BaseTask):
 
         return
 
+    def _load_proj_asset(self):
+        asset_root = "phc/data/assets/urdf/"
+
+        small_asset_file = "block_projectile.urdf"
+        # small_asset_file = "ball_medium.urdf"
+        small_asset_options = gymapi.AssetOptions()
+        small_asset_options.angular_damping = 0.01
+        small_asset_options.linear_damping = 0.01
+        small_asset_options.max_angular_velocity = 100.0
+        small_asset_options.density = 10000000.0
+        # small_asset_options.fix_base_link = True
+        small_asset_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
+        self._small_proj_asset = self.gym.load_asset(self.sim, asset_root, small_asset_file, small_asset_options)
+
+        large_asset_file = "block_projectile_large.urdf"
+        large_asset_options = gymapi.AssetOptions()
+        large_asset_options.angular_damping = 0.01
+        large_asset_options.linear_damping = 0.01
+        large_asset_options.max_angular_velocity = 100.0
+        large_asset_options.density = 10000000.0
+        # large_asset_options.fix_base_link = True
+        large_asset_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
+        self._large_proj_asset = self.gym.load_asset(self.sim, asset_root, large_asset_file, large_asset_options)
+        return
+
+    def _build_proj(self, env_id, env_ptr):
+        pos = [
+            [-0.01, 0.3, 0.4],
+            # [ 0.0890016, -0.40830246, 0.25]
+        ]
+        for i, obj in enumerate(PERTURB_OBJS):
+            default_pose = gymapi.Transform()
+            default_pose.p.x = pos[i][0]
+            default_pose.p.y = pos[i][1]
+            default_pose.p.z = pos[i][2]
+            obj_type = obj[0]
+            if (obj_type == "small"):
+                proj_asset = self._small_proj_asset
+            elif (obj_type == "large"):
+                proj_asset = self._large_proj_asset
+
+            proj_handle = self.gym.create_actor(env_ptr, proj_asset, default_pose, "proj{:d}".format(i), env_id, 2)
+            self._proj_handles.append(proj_handle)
+
+        return
+
     def _setup_tensors(self):
         # get gym GPU state tensors
         actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
@@ -202,9 +248,16 @@ class Humanoid(BaseTask):
 
 
     def load_humanoid_configs(self, cfg):
-        # smpl
         self.humanoid_type = cfg.robot.humanoid_type
-
+        if self.humanoid_type in ["smpl", "smplh", "smplx"]:
+            self.load_smpl_configs(cfg)
+        elif self.humanoid_type in ['h1', 'g1']:
+            self.load_robot_configs(cfg)
+        else:
+            raise NotImplementedError
+        
+            
+    def load_common_humanoid_configs(self, cfg):
         self._divide_group = cfg["env"].get("divide_group", False)
         self._group_obs = cfg["env"].get("group_obs", False)
         self._disable_group_obs = cfg["env"].get("disable_group_obs", False)
@@ -287,6 +340,9 @@ class Humanoid(BaseTask):
         self.collect_dataset = cfg.get("collect_dataset", False)
         self.mlp_bypass = cfg["env"].get("mlp_bypass", False)
         
+    def load_smpl_configs(self, cfg):
+        self.load_common_humanoid_configs(cfg)
+        
         ##### Robot Configs #####
         self._has_upright_start = cfg.robot.get("has_upright_start", True)
         self.remove_toe = cfg.robot.get("remove_toe", False)
@@ -299,6 +355,7 @@ class Humanoid(BaseTask):
         self._freeze_hand = cfg.robot.get("freeze_hand", True)
         self._box_body = cfg.robot.get("box_body", False)
         self.reduce_action = cfg.robot.get("reduce_action", False)
+        
         
         if self._masterfoot:
             self.action_idx = [0, 1, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 54, 55, 60, 61, 62, 65, 66, 67, 68, 75, 76, 77, 80, 81, 82, 83]
@@ -326,6 +383,7 @@ class Humanoid(BaseTask):
         self._masterfoot_config = None
 
         self._dof_names = self._body_names[1:]
+        
         
         if self.humanoid_type == "smpl":
             remove_names = ["L_Hand", "R_Hand", "L_Toe", "R_Toe"]
@@ -359,13 +417,27 @@ class Humanoid(BaseTask):
         self.left_lower_indexes = [idx for idx , name in enumerate(self._dof_names) if name.startswith("L") and name[2:] in ["Hip", "Knee", "Ankle", "Toe"]]
         self.right_lower_indexes = [idx for idx , name in enumerate(self._dof_names) if name.startswith("R") and name[2:] in ["Hip", "Knee", "Ankle", "Toe"]]
         
-        if self._has_mesh:
-            gender_betas_data = joblib.load("sample_data/amass_isaac_gender_betas.pkl")
-            self._amass_gender_betas = np.array(list(gender_betas_data.values()))
-        else:
-            gender_betas_data = joblib.load("sample_data/amass_isaac_gender_betas_unique.pkl")
-            self._amass_gender_betas = np.array(gender_betas_data)
+        self._load_amass_gender_betas()
         
+    def load_robot_configs(self, cfg):
+        self.load_common_humanoid_configs(cfg)
+        self._has_upright_start = cfg["robot"].get("has_upright_start", True)
+        self._real_weight = True
+        self._body_names_orig = cfg["robot"].get("body_names", []) 
+        
+        _body_names_orig_copy = self._body_names_orig.copy()
+        self._full_track_bodies = _body_names_orig_copy
+
+        _body_names_orig_copy = self._body_names_orig.copy()
+        self._eval_bodies = _body_names_orig_copy # default eval bodies
+        self._body_names = self._body_names_orig
+        self._masterfoot_config = None
+        self.dof_subset = torch.tensor([]).long()
+        
+        self._dof_names = cfg["robot"].get("dof_names", [])
+        self.limb_weight_group = cfg["robot"].get("limb_weight_group", []) 
+        self.limb_weight_group = [[self._body_names.index(g) for g in group] for group in self.limb_weight_group]
+
     def _clear_recorded_states(self):
         del self.state_record
         self.state_record = defaultdict(list)
@@ -685,6 +757,13 @@ class Humanoid(BaseTask):
         else:
             return res
 
+    def _load_amass_gender_betas(self):
+        if self._has_mesh:
+            gender_betas_data = joblib.load("sample_data/amass_isaac_gender_betas.pkl")
+            self._amass_gender_betas = np.array(list(gender_betas_data.values()))
+        else:
+            gender_betas_data = joblib.load("sample_data/amass_isaac_gender_betas_unique.pkl")
+            self._amass_gender_betas = np.array(gender_betas_data)
             
     def _create_envs(self, num_envs, spacing, num_per_row):
         lower = gymapi.Vec3(-spacing, -spacing, 0.0)

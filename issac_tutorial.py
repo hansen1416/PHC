@@ -89,9 +89,15 @@ up_axis_idx = 2
 
 start_pose = gymapi.Transform()
 start_pose.p = gymapi.Vec3(0.0, 0.0, 0.84)
-start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+start_pose.r = gymapi.Quat(-0.7071, 0, 0, 0.7071)
 
 actor_handle = gym.create_actor(env, asset, start_pose, "MyActor", 0, 1)
+
+
+gym.prepare_sim(sim)
+gym.refresh_actor_root_state_tensor(sim)
+gym.refresh_dof_state_tensor(sim)
+
 
 # The state of each root body is represented using 13 floats with the same layout 
 # as GymRigidBodyState: 3 floats for position, 4 floats for quaternion, 3 floats 
@@ -102,18 +108,34 @@ _root_tensor = gym.acquire_actor_root_state_tensor(sim)
 # using the provided gymtorch interop module:
 root_tensor = gymtorch.wrap_tensor(_root_tensor)
 
-root_positions = root_tensor[:, 0:3]
-root_orientations = root_tensor[:, 3:7]
-root_linvels = root_tensor[:, 7:10]
-root_angvels = root_tensor[:, 10:13]
 
-print("root_positions:", root_positions)
-print("root_orientations:", root_orientations)
-print("root_linvels:", root_linvels)
-print("root_angvels:", root_angvels)
+_dof_states = gym.acquire_dof_state_tensor(sim)
+# (num_dofs, 2). The state of each DOF is represented using 2 floats: position and velocity.
+dof_states = gymtorch.wrap_tensor(_dof_states)
 
-gym.prepare_sim(sim)
+dof_states[:, 1] = 0.0 
+print(dof_states)
 
+gym.set_dof_state_tensor(sim, _dof_states)
+
+# --- 2) Build an upright root pose (face +X) ---
+# Position: set z high enough (≈ pelvis height for standing SMPL; 0.9–1.0 works)
+root_pos = torch.zeros_like(root_tensor[:, 0:3])
+root_pos[:, 2] = 0.95
+
+# Orientation: identity quaternion (w=1) -> upright in Z-up world
+root_rot = torch.zeros_like(root_tensor[:, 3:7])
+root_rot[:, 3] = 1.0  # (x,y,z,w) with w=1
+
+# Velocities: zero
+root_lin = torch.zeros_like(root_tensor[:, 7:10])
+root_ang = torch.zeros_like(root_tensor[:, 10:13])
+
+# Write into the flat root tensor (one actor assumed)
+root_tensor[:, 0:3]   = root_pos
+root_tensor[:, 3:7]   = root_rot
+root_tensor[:, 7:10]  = root_lin
+root_tensor[:, 10:13] = root_ang
 
 
 
@@ -137,9 +159,13 @@ props = gym.get_actor_dof_properties(env, actor_handle)
 # props["driveMode"].fill(gymapi.DOF_MODE_EFFORT)
 props["driveMode"].fill(gymapi.DOF_MODE_POS)
 # props["driveMode"].fill(gymapi.DOF_MODE_VEL)
-props["stiffness"].fill(0.0)
-props["damping"].fill(0.0)
+props["stiffness"].fill(1000.0)
+props["damping"].fill(100.0)
 gym.set_actor_dof_properties(env, actor_handle, props)
+
+# Prepare tensors
+gym.refresh_actor_root_state_tensor(sim)
+gym.refresh_dof_state_tensor(sim)
 
 # lower_limits = props['lower']
 # upper_limits = props['upper']
@@ -160,11 +186,6 @@ num_dofs = gym.get_actor_dof_count(env, actor_handle)
 
 
 
-_dof_states = gym.acquire_dof_state_tensor(sim)
-# (num_dofs, 2). The state of each DOF is represented using 2 floats: position and velocity.
-dof_states = gymtorch.wrap_tensor(_dof_states)
-
-gym.set_dof_state_tensor(sim, _dof_states)
 
 
 
@@ -213,7 +234,7 @@ while not gym.query_viewer_has_closed(viewer):
         # gym.set_actor_dof_position_targets(env, actor_handle, targets)
         # gym.set_actor_dof_velocity_targets(env, actor_handle, vel_targets)
 
-        gym.set_dof_position_target_tensor(sim, pd_tar_tensor)
+        # gym.set_dof_position_target_tensor(sim, pd_tar_tensor)
 
         # step the physics
         gym.simulate(sim)
