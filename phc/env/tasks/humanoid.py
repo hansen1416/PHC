@@ -152,9 +152,14 @@ class Humanoid(BaseTask):
         self.gym.refresh_rigid_body_state_tensor(self.sim)
         self.gym.refresh_net_contact_force_tensor(self.sim)
 
+        # [num_envs * num_actors_per_env, 13]
         self._root_states = gymtorch.wrap_tensor(actor_root_state)
         num_actors = self.get_num_actors_per_env()
 
+        # is a view (no copy) that reshapes self._root_states to [num_envs, num_actors_per_env, 13] 
+        # and then selects the 0-th actor per env (the humanoid):
+        # Because it is a view, in-place writes to self._humanoid_root_states[:, 0:3/3:7/…] 
+        # directly modify the corresponding slice of self._root_states.
         self._humanoid_root_states = self._root_states.view(self.num_envs, num_actors, actor_root_state.shape[-1])[..., 0, :]
         self._initial_humanoid_root_states = self._humanoid_root_states.clone()
         self._initial_humanoid_root_states[:, 7:13] = 0
@@ -528,8 +533,11 @@ class Humanoid(BaseTask):
     def _reset_env_tensors(self, env_ids):
         env_ids_int32 = self._humanoid_actor_ids[env_ids]
 
+        # Applies the actor root states (position, orientation, linear and angular velocity) for the humanoid rows of the global root-state tensor. Those rows were updated earlier via the view self._humanoid_root_states[...] = ... in _set_env_state
         self.gym.set_actor_root_state_tensor_indexed(self.sim, gymtorch.unwrap_tensor(self._root_states), gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
+        # Applies joint positions and joint velocities that _set_env_state(...) wrote into self._dof_pos/self._dof_vel (slices of self._dof_state). 
         self.gym.set_dof_state_tensor_indexed(self.sim, gymtorch.unwrap_tensor(self._dof_state), gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
+        # Sets the PD position targets to the same joint positions so the controller doesn’t immediately pull the joints away from the initialized pose.
         self.gym.set_dof_position_target_tensor_indexed( self.sim, gymtorch.unwrap_tensor(self._dof_pos.contiguous()), gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32)) 
         
         
@@ -609,23 +617,6 @@ class Humanoid(BaseTask):
             
             if self.self_obs_v == 3:
                 self._num_self_obs += 6 * len(self.force_sensor_joints)
-        elif self.humanoid_type in ['h1', 'g1']:
-            self._dof_obs_size = len(self._dof_names) # H1's each dof is 1 dof
-            self._dof_offsets = np.arange(len(self._dof_names) + 1)
-            self._num_actions = len(self._dof_names)
-
-            if self.self_obs_v == 3:
-                self._num_self_obs = 1 + len(self._body_names) * (3 + 6)  - 3 + 3 + 3 + self._dof_obs_size * 2  # height + num_bodies * 9 (pos + rot) - root_pos + root_vel + root_ang_vel + dof_pos + dof_vel
-            elif self.self_obs_v == 4:
-                self._num_self_obs = 1 + self._dof_obs_size * 2 + 3 + 3 + 3
-            else:
-                if (ENABLE_MAX_COORD_OBS):
-                    self._num_self_obs = 1 + len(self._body_names) * (3 + 6 + 3 + 3) - 3  # height + num_bodies * 15 (pos + vel + rot + ang_vel) - root_pos
-                else:
-                    self._num_self_obs = 13 + self._dof_obs_size + 28 + 3 * num_key_bodies  # [root_h, root_rot, root_vel, root_ang_vel, dof_pos, dof_vel, key_body_pos]
-            
-            if not self._root_height_obs:
-                self._num_self_obs -= 1
                 
         else:
             print("Unsupported character config file: {s}".format(asset_file))
@@ -1521,6 +1512,7 @@ class Humanoid(BaseTask):
     
     
     def _physics_step(self):
+        # it was before this !!!!!!
         self.render(i = 0) # Render outside of the step function.
         for i in range(self.control_freq_inv):
             # self.render(i = i) # Render outside of the step function.
