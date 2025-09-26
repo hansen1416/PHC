@@ -88,8 +88,8 @@ up_axis_idx = 2
 
 
 start_pose = gymapi.Transform()
-start_pose.p = gymapi.Vec3(0.0, 0.0, 0.84)
-start_pose.r = gymapi.Quat(-0.7071, 0, 0, 0.7071)
+# start_pose.p = gymapi.Vec3(0.0, 0.0, 0.84)
+# start_pose.r = gymapi.Quat(0, 0, 0, 1)
 
 actor_handle = gym.create_actor(env, asset, start_pose, "MyActor", 0, 1)
 
@@ -113,29 +113,67 @@ _dof_states = gym.acquire_dof_state_tensor(sim)
 # (num_dofs, 2). The state of each DOF is represented using 2 floats: position and velocity.
 dof_states = gymtorch.wrap_tensor(_dof_states)
 
-dof_states[:, 1] = 0.0 
-print(dof_states)
-
 gym.set_dof_state_tensor(sim, _dof_states)
 
-# --- 2) Build an upright root pose (face +X) ---
-# Position: set z high enough (≈ pelvis height for standing SMPL; 0.9–1.0 works)
-root_pos = torch.zeros_like(root_tensor[:, 0:3])
-root_pos[:, 2] = 0.95
+# # --- 2) Build an upright root pose (face +X) ---
+# # Position: set z high enough (≈ pelvis height for standing SMPL; 0.9–1.0 works)
+# root_pos = torch.zeros_like(root_tensor[:, 0:3])
+# root_pos[:, 2] = 0.95
 
-# Orientation: identity quaternion (w=1) -> upright in Z-up world
-root_rot = torch.zeros_like(root_tensor[:, 3:7])
-root_rot[:, 3] = 1.0  # (x,y,z,w) with w=1
+# # Orientation: identity quaternion (w=1) -> upright in Z-up world
+# root_rot = torch.zeros_like(root_tensor[:, 3:7])
+# root_rot[:, 3] = 1.0  # (x,y,z,w) with w=1
 
-# Velocities: zero
-root_lin = torch.zeros_like(root_tensor[:, 7:10])
-root_ang = torch.zeros_like(root_tensor[:, 10:13])
+# # Velocities: zero
+# root_lin = torch.zeros_like(root_tensor[:, 7:10])
+# root_ang = torch.zeros_like(root_tensor[:, 10:13])
 
-# Write into the flat root tensor (one actor assumed)
-root_tensor[:, 0:3]   = root_pos
-root_tensor[:, 3:7]   = root_rot
-root_tensor[:, 7:10]  = root_lin
-root_tensor[:, 10:13] = root_ang
+# # Write into the flat root tensor (one actor assumed)
+# root_tensor[:, 0:3]   = root_pos
+# root_tensor[:, 3:7]   = root_rot
+# root_tensor[:, 7:10]  = root_lin
+# root_tensor[:, 10:13] = root_ang
+
+
+
+env_ids_int32 = torch.tensor([0], dtype=torch.int32, device=device)
+
+
+data = joblib.load("./root_states1.pkl")
+
+root_states = torch.tensor(data["root_states"][0,:], device=device, dtype=torch.float32)
+dof_state   = torch.tensor(data["dof_state"],   device=device, dtype=torch.float32)
+dof_pos     = torch.tensor(data["dof_pos"],     device=device, dtype=torch.float32)
+
+print(root_states.shape)
+print(dof_state.shape)
+print(dof_pos.shape)
+
+# set root state
+gym.set_actor_root_state_tensor_indexed(
+    sim,
+    gymtorch.unwrap_tensor(root_states),
+    gymtorch.unwrap_tensor(env_ids_int32),
+    len(env_ids_int32)
+)
+
+# set dof states
+gym.set_dof_state_tensor_indexed(
+    sim,
+    gymtorch.unwrap_tensor(dof_state),
+    gymtorch.unwrap_tensor(env_ids_int32),
+    len(env_ids_int32)
+)
+
+# set PD position targets
+gym.set_dof_position_target_tensor_indexed(
+    sim,
+    gymtorch.unwrap_tensor(dof_pos.contiguous()),
+    gymtorch.unwrap_tensor(env_ids_int32),
+    len(env_ids_int32)
+)
+
+
 
 
 
@@ -185,70 +223,82 @@ num_dofs = gym.get_actor_dof_count(env, actor_handle)
 
 
 
-
-
-
-
-
-PHC_RESULT = os.path.join("/",
-    "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
-    "phc_kp_mcp_iccv", "phc_act", "0-ACCAD_Male2General_c3d_A11-Crawl_poses",
-    "noise_False_0.05_2025-09-17-21:24:04_np.pkl"
-)
-
-PHC_RESULT = os.path.join("/", "home", "hlz", "repos", "PHC", "output","HumanoidIm",
-    "phc_kp_mcp_iccv","phc_act","amass_isaac_standing_upright_slim", "noise_False_0.05_2025-09-22-21:05:26.pkl"
-)
-
-data  = joblib.load(PHC_RESULT)
-actions = data['clean_action'][0]   # (N, 69)
-
-dof_count = len(props["driveMode"])
-
-print(actions.shape, dof_count)
-
-assert actions.shape[1] == dof_count, f"{actions.shape[1]} != {dof_count}"
-
-# apply efforts (every frame)
-# efforts = np.random.uniform(low=lower_limits, high=upper_limits, size=num_dofs).astype(np.float32)
-# targets = np.random.uniform(low=lower_limits, high=upper_limits, size=num_dofs).astype(np.float32)
-# vel_targets = np.random.uniform(-math.pi, math.pi, num_dofs).astype(np.float32)
-
-# actions to tensor
-actions = torch.tensor(actions, dtype=torch.float32).to(device)
-
 while not gym.query_viewer_has_closed(viewer):
 
-    for t in range(actions.shape[0]):
-        # targets = actions[t]   # one frame of action
-        # gym.set_actor_dof_position_targets(env, actor_handle, targets)
+    # step the physics
+    gym.simulate(sim)
+
+    gym.fetch_results(sim, True)
+
+    # update the viewer
+    gym.step_graphics(sim)
+    gym.draw_viewer(viewer, sim, True)
+
+    # Wait for dt to elapse in real time.
+    # This synchronizes the physics simulation with the rendering rate.
+    gym.sync_frame_time(sim)
+
+
+
+# PHC_RESULT = os.path.join("/",
+#     "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
+#     "phc_kp_mcp_iccv", "phc_act", "0-ACCAD_Male2General_c3d_A11-Crawl_poses",
+#     "noise_False_0.05_2025-09-17-21:24:04_np.pkl"
+# )
+
+# PHC_RESULT = os.path.join("/", "home", "hlz", "repos", "PHC", "output","HumanoidIm",
+#     "phc_kp_mcp_iccv","phc_act","amass_isaac_standing_upright_slim", "noise_False_0.05_2025-09-22-21:05:26.pkl"
+# )
+
+# data  = joblib.load(PHC_RESULT)
+# actions = data['clean_action'][0]   # (N, 69)
+
+# dof_count = len(props["driveMode"])
+
+# print(actions.shape, dof_count)
+
+# assert actions.shape[1] == dof_count, f"{actions.shape[1]} != {dof_count}"
+
+# # apply efforts (every frame)
+# # efforts = np.random.uniform(low=lower_limits, high=upper_limits, size=num_dofs).astype(np.float32)
+# # targets = np.random.uniform(low=lower_limits, high=upper_limits, size=num_dofs).astype(np.float32)
+# # vel_targets = np.random.uniform(-math.pi, math.pi, num_dofs).astype(np.float32)
+
+# # actions to tensor
+# actions = torch.tensor(actions, dtype=torch.float32).to(device)
+
+# while not gym.query_viewer_has_closed(viewer):
+
+#     for t in range(actions.shape[0]):
+#         # targets = actions[t]   # one frame of action
+#         # gym.set_actor_dof_position_targets(env, actor_handle, targets)
         
-        # print(111111111)
+#         # print(111111111)
 
-        # # make random tensor
-        pd_tar_tensor = gymtorch.unwrap_tensor(actions[t])
+#         # # make random tensor
+#         pd_tar_tensor = gymtorch.unwrap_tensor(actions[t])
 
-        # print(pd_tar_tensor.shape)
+#         # print(pd_tar_tensor.shape)
 
-        # gym.apply_actor_dof_efforts(env, actor_handle, targets)
-        # gym.set_actor_dof_position_targets(env, actor_handle, targets)
-        # gym.set_actor_dof_velocity_targets(env, actor_handle, vel_targets)
+#         # gym.apply_actor_dof_efforts(env, actor_handle, targets)
+#         # gym.set_actor_dof_position_targets(env, actor_handle, targets)
+#         # gym.set_actor_dof_velocity_targets(env, actor_handle, vel_targets)
 
-        # gym.set_dof_position_target_tensor(sim, pd_tar_tensor)
+#         # gym.set_dof_position_target_tensor(sim, pd_tar_tensor)
 
-        # step the physics
-        gym.simulate(sim)
+#         # step the physics
+#         gym.simulate(sim)
 
 
-        gym.fetch_results(sim, True)
+#         gym.fetch_results(sim, True)
 
-        # update the viewer
-        gym.step_graphics(sim)
-        gym.draw_viewer(viewer, sim, True)
+#         # update the viewer
+#         gym.step_graphics(sim)
+#         gym.draw_viewer(viewer, sim, True)
 
-        # Wait for dt to elapse in real time.
-        # This synchronizes the physics simulation with the rendering rate.
-        gym.sync_frame_time(sim)
+#         # Wait for dt to elapse in real time.
+#         # This synchronizes the physics simulation with the rendering rate.
+#         gym.sync_frame_time(sim)
 
 
 gym.destroy_viewer(viewer)
