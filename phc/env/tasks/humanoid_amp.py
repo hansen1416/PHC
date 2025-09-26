@@ -507,7 +507,21 @@ class HumanoidAMP(Humanoid):
 
     def _reset_ref_state_init(self, env_ids):
         num_envs = env_ids.shape[0]
-        # when start, get the motion from time=0
+
+        # when start, get the motion from time=0, B = batch size
+        # env_ids:        Long[B]. Indices of the environments
+        # motion_ids:      Long[B]. Index of the reference motion clip chosen for each env (one id per env). :contentReference[oaicite:0]{index=0}
+        # motion_times:    Float[B]. Sampled time (in seconds) within each chosen motion clip. Zero if StateInit.Start. :contentReference[oaicite:1]{index=1}
+        # root_pos:        Float[B, 3]. World-space root (pelvis) translation at that motion time (meters). :contentReference[oaicite:2]{index=2}
+        # root_rot:        Float[B, 4]. World-space root orientation as a quaternion (x, y, z, w). :contentReference[oaicite:3]{index=3}
+        # dof_pos:         Float[B, N_dof]. Joint configuration for the simulator DOFs at the same time (e.g., joint angles). :contentReference[oaicite:4]{index=4}
+        # root_vel:        Float[B, 3]. World-space linear velocity of the root (m/s). :contentReference[oaicite:5]{index=5}
+        # root_ang_vel:    Float[B, 3]. World-space angular velocity of the root (rad/s). :contentReference[oaicite:6]{index=6}
+        # dof_vel:         Float[B, N_dof]. Joint velocities (rad/s for revolute, m/s for prismatic). :contentReference[oaicite:7]{index=7}
+        # rb_pos:          Float[B, N_bodies, 3] or None. World-space rigid-body (link) positions from the reference; may be None for non-SMPL types. 
+        # rb_rot:          Float[B, N_bodies, 4] or None. World-space rigid-body orientations (quaternions). 
+        # body_vel:        Float[B, N_bodies, 3]. World-space linear velocities for each rigid body in the reference. :contentReference[oaicite:10]{index=10}
+        # body_ang_vel:    Float[B, N_bodies, 3]. World-space angular velocities for each rigid body. :contentReference[oaicite:11]{index=11}
         motion_ids, motion_times, root_pos, root_rot, dof_pos, root_vel, root_ang_vel, dof_vel, rb_pos, rb_rot, body_vel, body_ang_vel = self._sample_ref_state(env_ids)
         
         # if flags.debug:
@@ -626,6 +640,15 @@ class HumanoidAMP(Humanoid):
         self._humanoid_root_states[env_ids, 10:13] = root_ang_vel
         self._dof_pos[env_ids] = dof_pos
         self._dof_vel[env_ids] = dof_vel
+
+        print("-------------------------")
+        print("root_pos:", root_pos)
+        print("root_rot:", root_rot)
+        print("root_vel:", root_vel)
+        print("root_ang_vel:", root_ang_vel)
+        print(dof_pos)
+        print(dof_vel)
+        print("-------------------------")
 
         if (not rigid_body_pos is None) and (not rigid_body_rot is None):
             self._rigid_body_pos[env_ids] = rigid_body_pos

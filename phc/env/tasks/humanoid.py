@@ -533,6 +533,25 @@ class Humanoid(BaseTask):
     def _reset_env_tensors(self, env_ids):
         env_ids_int32 = self._humanoid_actor_ids[env_ids]
 
+        print("-------------------------2")
+        print(self._root_states)
+        print(self._root_states.shape)
+        print(self._dof_state)
+        print(self._dof_state.shape)
+        print(self._dof_pos)
+        print(self._dof_pos.shape)
+        print("-------------------------2")
+
+        data = {
+            "root_states": self._root_states.detach().cpu().clone(),
+            "dof_state": self._dof_state.detach().cpu().clone(),
+            "dof_pos": self._dof_pos.detach().cpu().clone(),
+        }
+
+        file_path = os.path.join("./", f"root_states1.pkl")
+        joblib.dump(data, file_path)
+        print(f"Saved states to {file_path}")
+
         # Applies the actor root states (position, orientation, linear and angular velocity) for the humanoid rows of the global root-state tensor. Those rows were updated earlier via the view self._humanoid_root_states[...] = ... in _set_env_state
         self.gym.set_actor_root_state_tensor_indexed(self.sim, gymtorch.unwrap_tensor(self._root_states), gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
         # Applies joint positions and joint velocities that _set_env_state(...) wrote into self._dof_pos/self._dof_vel (slices of self._dof_state). 
