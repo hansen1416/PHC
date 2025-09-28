@@ -191,6 +191,8 @@ env_ids = torch.arange(num_envs).int().to(args.sim_device)
 
 motion_len = motion_lib.get_motion_length(motion_id).item()
 
+
+
 while not gym.query_viewer_has_closed(viewer):
     # step the physics
 
@@ -212,9 +214,10 @@ while not gym.query_viewer_has_closed(viewer):
 
     dof_state = torch.stack([dof_pos, torch.zeros_like(dof_pos)], dim=-1).squeeze().repeat(num_envs, 1)
     gym.set_dof_state_tensor_indexed(sim, gymtorch.unwrap_tensor(dof_state), gymtorch.unwrap_tensor(env_ids), len(env_ids))
+    gym.refresh_rigid_body_state_tensor(sim)
 
     gym.simulate(sim)
-    gym.refresh_rigid_body_state_tensor(sim)
+    
     gym.fetch_results(sim, True)
 
     # update the viewer
@@ -225,7 +228,7 @@ while not gym.query_viewer_has_closed(viewer):
     # This synchronizes the physics simulation with the rendering rate.
     gym.sync_frame_time(sim)
     
-    time_step += dt
+    # time_step += dt
 
 print("Done")
 

@@ -105,58 +105,29 @@ def read_phc_result(file_path):
 
 res = read_phc_result(file_path)
 
-print(res.keys())
+# print(res.keys())
 
-for k,v in res.items():
-    # display the type and shape if applicable
-    if isinstance(v, list):
-        print(f"{k}: list of {len(v)} arrays")
-        for i, arr in enumerate(v):
-            if hasattr(arr, 'shape'):
-                print(f"  [{i}] shape: {arr.shape}, dtype: {arr.dtype}")
-            else:
-                print(f"  [{i}] type: {type(arr)}")
-    elif isinstance(v, dict):
-        print(f"{k}: dict with keys {list(v.keys())}")
-        for k2, v2 in v.items():
-            if hasattr(v2, 'shape'):
-                print(f"  {k2}: shape: {v2.shape}, dtype: {v2.dtype}")
-            else:
-                print(f"  {k2}: type: {type(v2)}")
-    elif isinstance(v, np.ndarray):
-        print(f"{k}: ndarray shape: {v.shape}, dtype: {v.dtype}")
-    else:
-        print(f"{k}: type: {type(v)}, value: {v}")
-
-
-
-# data = joblib.load('data/amass/amass_train_take6.pkl')
-# data = joblib.load(file_path)
-# data is a dictionary where each key is a sequence, and each value is the `new_motion_out` dictionary as described above
-
-# Example: print keys and access the first sequence
-# print(data.keys())
-# dict_keys(['obs', 'clean_action', 'env_action', 'key_names', 'motion_lengths', 'reset', 'running_mean', 'config'])
-
-# for k, v in data.items():
-#     # save each one as a separate file, named by the key filtered to be a valid filename
-#     print(k)
-#     print(v)
+# for k,v in res.items():
+#     # display the type and shape if applicable
+#     if isinstance(v, list):
+#         print(f"{k}: list of {len(v)} arrays")
+#         for i, arr in enumerate(v):
+#             if hasattr(arr, 'shape'):
+#                 print(f"  [{i}] shape: {arr.shape}, dtype: {arr.dtype}")
+#             else:
+#                 print(f"  [{i}] type: {type(arr)}")
+#     elif isinstance(v, dict):
+#         print(f"{k}: dict with keys {list(v.keys())}")
+#         for k2, v2 in v.items():
+#             if hasattr(v2, 'shape'):
+#                 print(f"  {k2}: shape: {v2.shape}, dtype: {v2.dtype}")
+#             else:
+#                 print(f"  {k2}: type: {type(v2)}")
+#     elif isinstance(v, np.ndarray):
+#         print(f"{k}: ndarray shape: {v.shape}, dtype: {v.dtype}")
+#     else:
+#         print(f"{k}: type: {type(v)}, value: {v}")
 
 
-# sprint1 = {"sprint1": data['0-ACCAD_s009_Sprint1_poses']}
 
-# print(sprint1.keys())
-
-# print(sprint1['sprint1']['pose_quat_global'].shape)
-
-# # first_seq = next(iter(data.values()))
-# # print(first_seq['pose_quat_global'].shape)
-# joblib.dump(sprint1, "data/amass/amass_sprint1.pkl", compress=True)
-
-
-# # data = joblib.load('sample_data/amass_isaac_standing_upright_slim.pkl')
-
-# # print(data.keys())
-
-# # print(data['standing'].keys())
+print(res['config'])
