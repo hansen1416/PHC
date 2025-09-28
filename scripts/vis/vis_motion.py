@@ -206,6 +206,8 @@ body_ids = np.array(body_ids)
 
 motion_file = "data/amass/pkls/amass_isaac_im_patch_upright_slim.pkl"
 motion_file = "data/amass/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl"
+motion_file = "data/amass/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl"
+motion_file = "data/amass/pkls/0-ACCAD_Male2General_c3d_A11-Crawl_poses.pkl"
 # motion_file = "data/amass/pkls/amass_isaac_im_train_upright_slim.pkl"
 # motion_file = "data/amass/pkls/amass_isaac_locomotion_upright.pkl"
 # motion_file = "data/amass/pkls/amass_isaac_slowalk_upright.pkl"
@@ -266,6 +268,10 @@ num_motions = 30
 curr_start = 0
 motion_lib.load_motions(skeleton_trees=[sk_tree] * num_motions, gender_betas=[torch.zeros(17)] * num_motions, limb_weights=[np.zeros(10)] * num_motions, random_sample=False)
 motion_keys = motion_lib.curr_motion_keys
+
+print("------------------ Keyboard Commands ------------------")
+print(motion_keys)
+exit()
 
 current_dof = 0
 speeds = np.zeros(num_dofs)

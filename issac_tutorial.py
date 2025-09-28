@@ -8,9 +8,6 @@ import joblib
 import torch
 from isaacgym import gymtorch
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
-
 def get_axis_params(value, axis_idx, x_value=0.0, dtype=float, n_dims=3):
     """construct arguments to `Vec` according to axis index."""
     zs = np.zeros((n_dims,))
@@ -25,6 +22,30 @@ def torch_rand_float(lower, upper, shape, device):
     # type: (float, float, Tuple[int, int], str) -> Tensor
     return (upper - lower) * torch.rand(*shape, device=device) + lower
 
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+device_type = 'cuda'
+
+# List of body indices (excluding the root at 0) that have joints/DOFs.  
+# Each entry corresponds to a link in the humanoid skeleton that can rotate/move.
+_dof_body_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+# Cumulative offsets into the flattened DOF state vector.  
+# Each body contributes 3 DOFs (rotation in exp-map), so offsets increase by 3.  
+# The last value (69) is total DOFs.
+_dof_offsets = [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60, 63, 66, 69]
+# Observation size contributed by DOFs.  
+# Each DOF has position (3) + velocity (3) = 6 → 69 * 6 = 138.
+_dof_obs_size =138
+# Total number of degrees of freedom for the humanoid model  
+# (23 bodies × 3 rotational DOFs each).
+_dof_size=69
+# Number of actions the policy must output.  
+# Here, one action per DOF (torque or target rotation).
+_num_actions= 69
+# Size of the self-observation vector (the agent’s proprioception).  
+# This includes root state (pos/orientation/velocities), DOF states, key body states,  
+# and possibly shape/weight/force-sensor features depending on config flags.  
+_num_self_obs =358
+
 gym = gymapi.acquire_gym()
 
 
@@ -33,23 +54,23 @@ sim_params = gymapi.SimParams()
 
 # set common parameters
 sim_params.dt = 1 / 60
-sim_params.substeps = 2
+# sim_params.substeps = 2
 sim_params.up_axis = gymapi.UP_AXIS_Z
 sim_params.gravity = gymapi.Vec3(0.0, 0.0, -9.8)
 
-# set PhysX-specific parameters
-sim_params.physx.solver_type = 1
-sim_params.physx.num_position_iterations = 6
-sim_params.physx.num_velocity_iterations = 1
-sim_params.physx.contact_offset = 0.01
-sim_params.physx.rest_offset = 0.0
+# # set PhysX-specific parameters
+# sim_params.physx.solver_type = 1
+# sim_params.physx.num_position_iterations = 6
+# sim_params.physx.num_velocity_iterations = 1
+# sim_params.physx.contact_offset = 0.01
+# sim_params.physx.rest_offset = 0.0
 
-# set Flex-specific parameters
-sim_params.flex.solver_type = 5
-sim_params.flex.num_outer_iterations = 4
-sim_params.flex.num_inner_iterations = 20
-sim_params.flex.relaxation = 0.8
-sim_params.flex.warm_start = 0.5
+# # set Flex-specific parameters
+# sim_params.flex.solver_type = 5
+# sim_params.flex.num_outer_iterations = 4
+# sim_params.flex.num_inner_iterations = 20
+# sim_params.flex.relaxation = 0.8
+# sim_params.flex.warm_start = 0.5
 
 sim_params.use_gpu_pipeline = True
 sim_params.physx.use_gpu = True
@@ -60,7 +81,6 @@ physics_engine = gymapi.SIM_PHYSX
 
 # create sim with these parameters
 sim = gym.create_sim(compute_device_id, graphics_device_id, physics_engine, sim_params)
-
 
 
 # ---------- prepare assets and envs ----------------
@@ -80,23 +100,38 @@ env = gym.create_env(sim, env_lower, env_upper, 1)
 char_h = 0.89
 up_axis_idx = 2
 
-
-
-# pos = torch.tensor(get_axis_params(char_h, up_axis_idx)).to(device)
-# pos[:2] += torch_rand_float(-1., 1., (2, 1), device=device).squeeze(1)
-
-
-
 start_pose = gymapi.Transform()
-# start_pose.p = gymapi.Vec3(0.0, 0.0, 0.84)
-# start_pose.r = gymapi.Quat(0, 0, 0, 1)
+start_pose.p = gymapi.Vec3(0.0, 0.0, 0.84)
+start_pose.r = gymapi.Quat(0, 0, 0, 1)
 
 actor_handle = gym.create_actor(env, asset, start_pose, "MyActor", 0, 1)
 
-
 gym.prepare_sim(sim)
-gym.refresh_actor_root_state_tensor(sim)
+
+# actor_root_state: (1, 13)
+# dof_state_tensor: (69, 2)
+# sensor_tensor: ()
+# rigid_body_state: (24, 13)
+# contact_force_tensor: (24, 3)
+# dof_force_tensor: (69,)
+actor_root_state = gym.acquire_actor_root_state_tensor(sim)
+dof_state_tensor = gym.acquire_dof_state_tensor(sim)
+sensor_tensor = gym.acquire_force_sensor_tensor(sim)
+rigid_body_state = gym.acquire_rigid_body_state_tensor(sim)
+contact_force_tensor = gym.acquire_net_contact_force_tensor(sim)
+# dof_force_tensor = gym.acquire_dof_force_tensor(sim)
+
 gym.refresh_dof_state_tensor(sim)
+gym.refresh_actor_root_state_tensor(sim)
+gym.refresh_rigid_body_state_tensor(sim)
+gym.refresh_net_contact_force_tensor(sim)
+
+# exit()
+
+
+
+# gym.refresh_actor_root_state_tensor(sim)
+# gym.refresh_dof_state_tensor(sim)
 
 
 # The state of each root body is represented using 13 floats with the same layout 
@@ -145,9 +180,9 @@ root_states = torch.tensor(data["root_states"][0,:], device=device, dtype=torch.
 dof_state   = torch.tensor(data["dof_state"],   device=device, dtype=torch.float32)
 dof_pos     = torch.tensor(data["dof_pos"],     device=device, dtype=torch.float32)
 
-print(root_states.shape)
-print(dof_state.shape)
-print(dof_pos.shape)
+# print(root_states.shape)
+# print(dof_state.shape)
+# print(dof_pos.shape)
 
 # set root state
 gym.set_actor_root_state_tensor_indexed(
@@ -194,8 +229,8 @@ gym.add_ground(sim, plane_params)
 
 
 props = gym.get_actor_dof_properties(env, actor_handle)
-# props["driveMode"].fill(gymapi.DOF_MODE_EFFORT)
-props["driveMode"].fill(gymapi.DOF_MODE_POS)
+props["driveMode"].fill(gymapi.DOF_MODE_EFFORT)
+# props["driveMode"].fill(gymapi.DOF_MODE_POS)
 # props["driveMode"].fill(gymapi.DOF_MODE_VEL)
 props["stiffness"].fill(1000.0)
 props["damping"].fill(100.0)

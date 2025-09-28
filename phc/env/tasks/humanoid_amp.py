@@ -641,14 +641,14 @@ class HumanoidAMP(Humanoid):
         self._dof_pos[env_ids] = dof_pos
         self._dof_vel[env_ids] = dof_vel
 
-        print("-------------------------")
-        print("root_pos:", root_pos)
-        print("root_rot:", root_rot)
-        print("root_vel:", root_vel)
-        print("root_ang_vel:", root_ang_vel)
-        print(dof_pos)
-        print(dof_vel)
-        print("-------------------------")
+        # print("-------------------------0927")
+        # print("root_pos:", root_pos)
+        # print("root_rot:", root_rot)
+        # print("root_vel:", root_vel)
+        # print("root_ang_vel:", root_ang_vel)
+        # print(dof_pos)
+        # print(dof_vel)
+        # print("-------------------------0927")
 
         if (not rigid_body_pos is None) and (not rigid_body_rot is None):
             self._rigid_body_pos[env_ids] = rigid_body_pos

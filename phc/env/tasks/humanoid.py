@@ -164,6 +164,16 @@ class Humanoid(BaseTask):
         self._initial_humanoid_root_states = self._humanoid_root_states.clone()
         self._initial_humanoid_root_states[:, 7:13] = 0
 
+        # save self._humanoid_root_states and self._initial_humanoid_root_states to local file
+        data = {
+            "humanoid_root_states": self._humanoid_root_states.detach().cpu().clone(),
+            "initial_root_states": self._initial_humanoid_root_states.detach().cpu().clone(),
+        }
+
+        print("-------------------------1111")
+
+        file_path = os.path.join("./", f"init_states1.pkl")
+
         self._humanoid_actor_ids = num_actors * torch.arange(self.num_envs, device=self.device, dtype=torch.int32)
 
         # create some wrapper tensors for different slices
@@ -533,24 +543,24 @@ class Humanoid(BaseTask):
     def _reset_env_tensors(self, env_ids):
         env_ids_int32 = self._humanoid_actor_ids[env_ids]
 
-        print("-------------------------2")
-        print(self._root_states)
-        print(self._root_states.shape)
-        print(self._dof_state)
-        print(self._dof_state.shape)
-        print(self._dof_pos)
-        print(self._dof_pos.shape)
-        print("-------------------------2")
+        # print("-------------------------0927")
+        # print(self._root_states)
+        # print(self._root_states.shape)
+        # print(self._dof_state)
+        # print(self._dof_state.shape)
+        # print(self._dof_pos)
+        # print(self._dof_pos.shape)
 
-        data = {
-            "root_states": self._root_states.detach().cpu().clone(),
-            "dof_state": self._dof_state.detach().cpu().clone(),
-            "dof_pos": self._dof_pos.detach().cpu().clone(),
-        }
+        # data = {
+        #     "root_states": self._root_states.detach().cpu().clone(),
+        #     "dof_state": self._dof_state.detach().cpu().clone(),
+        #     "dof_pos": self._dof_pos.detach().cpu().clone(),
+        # }
 
-        file_path = os.path.join("./", f"root_states1.pkl")
-        joblib.dump(data, file_path)
-        print(f"Saved states to {file_path}")
+        # file_path = os.path.join("./", f"root_states1.pkl")
+        # joblib.dump(data, file_path)
+        # print(f"Saved states to {file_path}")
+        # print("-------------------------0927")
 
         # Applies the actor root states (position, orientation, linear and angular velocity) for the humanoid rows of the global root-state tensor. Those rows were updated earlier via the view self._humanoid_root_states[...] = ... in _set_env_state
         self.gym.set_actor_root_state_tensor_indexed(self.sim, gymtorch.unwrap_tensor(self._root_states), gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
