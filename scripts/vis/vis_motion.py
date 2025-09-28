@@ -96,7 +96,7 @@ if viewer is None:
     quit()
 
 asset_root = os.path.join("phc", "data", "assets", "mjcf")
-asset_file = "smpl_humanoid_1.xml"
+asset_file = "smpl_humanoid.xml"
 
 sk_tree = SkeletonTree.from_mjcf(osp.join(asset_root, asset_file))
 
@@ -139,6 +139,21 @@ for i in range(num_envs):
     # set default DOF positions
     dof_states = np.zeros(num_dofs, dtype=gymapi.DofState.dtype)
     gym.set_actor_dof_states(env, actor_handle, dof_states, gymapi.STATE_ALL)
+
+    props = gym.get_actor_dof_properties(env, actor_handle)
+    props["driveMode"].fill(gymapi.DOF_MODE_POS)            # PD position mode
+    # Reasonable generic gains (tune to match training if needed)
+    # props["stiffness"][:] = np.where(props["stiffness"] == 0, 80.0, props["stiffness"])
+    # props["damping"][:]   = np.where(props["damping"]   == 0,  2.0, props["damping"])
+
+    # set stiffness and damping all to 0 to use torque control directly
+    # props["stiffness"][:] = 0.0
+    # props["damping"][:]   = 0.0
+
+    # print(props["stiffness"])
+    # print(props["damping"])
+
+    gym.set_actor_dof_properties(env, actor_handle, props) 
 
 # Setup Motion
 body_ids = []
@@ -212,11 +227,44 @@ dof_state = torch.stack([dof_pos, torch.zeros_like(dof_pos)], dim=-1).squeeze().
 gym.set_dof_state_tensor_indexed(sim, gymtorch.unwrap_tensor(dof_state), gymtorch.unwrap_tensor(env_ids), len(env_ids))
 gym.refresh_rigid_body_state_tensor(sim)
 
+gym.simulate(sim)
+
+# ------- load motion action results -------
+PHC_RESULT = os.path.join("/",
+    "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
+    "phc_kp_mcp_iccv", "phc_act", "0-ACCAD_Male2General_c3d_A11-Crawl_poses",
+    "noise_False_0.05_2025-09-28-22:19:46.pkl"
+)
+
+data  = joblib.load(PHC_RESULT)
+actions = data['clean_action'][0]   # (N, 69)
+
+actions = torch.tensor(actions, dtype=torch.float32).to(device)
+
+# print(actions.shape)
+
+t_idx = 0
+tota_steps = actions.shape[0]
+
+# Pre-allocate a device tensor for per-step targets
+pd_target = torch.empty_like(actions[0])  # shape (A,)
+
+# print(pd_target.shape)
 
 while not gym.query_viewer_has_closed(viewer):
     # step the physics
 
+    # gym.simulate(sim)
 
+    pd_target[:] = actions[t_idx % tota_steps]
+
+    # If actions already match DOF ordering and count:
+    # (If you needed expansion from a reduced action set, use the expanded vector instead.)
+    pd_tar_tensor = gymtorch.unwrap_tensor(pd_target)
+
+     # set PD position targets (this produces torques via Kp, Kd)
+    gym.set_dof_position_target_tensor(sim, pd_tar_tensor)  # Isaac PD path.
+    
     gym.simulate(sim)
     
     gym.fetch_results(sim, True)
@@ -230,6 +278,8 @@ while not gym.query_viewer_has_closed(viewer):
     gym.sync_frame_time(sim)
     
     # time_step += dt
+    t_idx += 1
+
 
 print("Done")
 
