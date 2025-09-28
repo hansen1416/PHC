@@ -281,6 +281,11 @@ rigidbody_state = rigidbody_state.reshape(num_envs, -1, 13)
 actor_root_state = gym.acquire_actor_root_state_tensor(sim)
 actor_root_state = gymtorch.wrap_tensor(actor_root_state)
 
+# gym.subscribe_viewer_keyboard_event(viewer, gymapi.KEY_LEFT, "previous")
+# gym.subscribe_viewer_keyboard_event(viewer, gymapi.KEY_RIGHT, "next")
+# gym.subscribe_viewer_keyboard_event(viewer, gymapi.KEY_G, "add")
+# gym.subscribe_viewer_keyboard_event(viewer, gymapi.KEY_P, "print")
+# gym.subscribe_viewer_keyboard_event(viewer, gymapi.KEY_T, "next_batch")
 motion_id = 0
 motion_acc = set()
 if masterfoot:
