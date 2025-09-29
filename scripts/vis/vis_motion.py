@@ -37,8 +37,6 @@ from phc.utils.flags import flags
 from easydict import EasyDict
 from phc.utils.motion_lib_base import FixHeightMode
 
-flags.test = True
-flags.im_eval = True
 
 
 def clamp(x, min_value, max_value):
@@ -76,7 +74,15 @@ def action_to_pd_target(action, device='cuda:0'):
 
 # parse arguments
 args = gymutil.parse_arguments(description="Joint monkey: Animate degree-of-freedom ranges",
-                               custom_parameters=[{
+                               custom_parameters=[
+                                   {
+                                    "name": "pos_index",     # no '--', since it's positional
+                                    "type": int,
+                                    "default": 0,
+                                    "help": "Index of something",
+                                    "positional": True       # makes it positional
+                                },
+                                   {
                                    "name": "--speed_scale",
                                    "type": float,
                                    "default": 1.0,
@@ -113,7 +119,7 @@ results_pair = [
     },
 ]
 
-result_i = 3
+result_i = int(args.pos_index)
 
 motion_file = results_pair[result_i]["motion_file"]
 phc_result = results_pair[result_i]["phc_result"]
