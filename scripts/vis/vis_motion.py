@@ -267,21 +267,10 @@ root_pos, root_rot, dof_pos, root_vel, root_ang_vel, dof_vel, smpl_params, limb_
 
 
 root_states = torch.cat([root_pos, root_rot, root_vel, root_ang_vel], dim=-1).repeat(num_envs, 1)
-# gym.set_actor_root_state_tensor(sim, gymtorch.unwrap_tensor(root_states))
-gym.set_actor_root_state_tensor_indexed(sim, gymtorch.unwrap_tensor(root_states), gymtorch.unwrap_tensor(env_ids), len(env_ids))
-
-
 
 dof_state = torch.stack([dof_pos, torch.zeros_like(dof_pos)], dim=-1).squeeze().repeat(num_envs, 1)
-gym.set_dof_state_tensor_indexed(sim, gymtorch.unwrap_tensor(dof_state), gymtorch.unwrap_tensor(env_ids), len(env_ids))
 
 
-
-gym.simulate(sim)
-gym.fetch_results(sim, True)
-
-gym.refresh_actor_root_state_tensor(sim)
-gym.refresh_rigid_body_state_tensor(sim)
 
 # ------- load motion action results -------
 data  = joblib.load(phc_result)
@@ -300,6 +289,17 @@ pd_target = torch.empty_like(actions[0])  # shape (A,)
 # print(pd_target.shape)
 
 while not gym.query_viewer_has_closed(viewer):
+
+    if t_idx == 0:
+        gym.set_actor_root_state_tensor_indexed(sim, gymtorch.unwrap_tensor(root_states), gymtorch.unwrap_tensor(env_ids), len(env_ids))
+        gym.set_dof_state_tensor_indexed(sim, gymtorch.unwrap_tensor(dof_state), gymtorch.unwrap_tensor(env_ids), len(env_ids))
+
+        gym.simulate(sim)
+        gym.fetch_results(sim, True)
+
+        gym.refresh_actor_root_state_tensor(sim)
+        gym.refresh_rigid_body_state_tensor(sim)
+
     # step the physics
 
     # gym.simulate(sim)
@@ -338,6 +338,9 @@ while not gym.query_viewer_has_closed(viewer):
     
     # time_step += dt
     t_idx += 1
+
+    if t_idx >= tota_steps:
+        t_idx = 0
 
 
 print("Done")
