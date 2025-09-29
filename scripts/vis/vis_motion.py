@@ -44,6 +44,36 @@ flags.im_eval = True
 def clamp(x, min_value, max_value):
     return max(min(x, max_value), min_value)
 
+def action_to_pd_target(action, device='cuda:0'):
+
+    action_offset = torch.tensor([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       device=device)
+
+    action_scale = torch.tensor([3.1416, 3.1416, 3.1416, 3.1416, 5.0000, 3.1416, 3.1416, 3.1416, 3.1416,
+            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 5.0000, 3.1416,
+            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416,
+            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416,
+            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416,
+            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416,
+            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416,
+            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416], device=device)
+
+    # _freeze_hand = True
+
+    pd_target = action_offset + action_scale * action
+
+    SMPL_MUJOCO_NAMES = ['Pelvis', 'L_Hip', 'L_Knee', 'L_Ankle', 'L_Toe', 'R_Hip', 'R_Knee', 'R_Ankle', 'R_Toe', 'Torso', 'Spine', 'Chest', 'Neck', 'Head', 'L_Thorax', 'L_Shoulder', 'L_Elbow', 
+                     'L_Wrist', 'L_Hand', 'R_Thorax', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'R_Hand']
+
+    _dof_names = SMPL_MUJOCO_NAMES[1:]  # exclude pelvis
+
+    pd_target[_dof_names.index("L_Hand") * 3:(_dof_names.index("L_Hand") * 3 + 3)] = 0
+    pd_target[_dof_names.index("R_Hand") * 3:(_dof_names.index("R_Hand") * 3 + 3)] = 0
+
+    return pd_target
+
 # parse arguments
 args = gymutil.parse_arguments(description="Joint monkey: Animate degree-of-freedom ranges",
                                custom_parameters=[{
@@ -130,7 +160,7 @@ for i in range(num_envs):
 
     # add actor
     pose = gymapi.Transform()
-    pose.p = gymapi.Vec3(0.0, 0, 0.0)
+    pose.p = gymapi.Vec3(0.0, 0, 1.0)
     pose.r = gymapi.Quat(0, 0.0, 0.0, 1)
 
     actor_handle = gym.create_actor(env, asset, pose, "actor", i, 1)
@@ -227,7 +257,7 @@ dof_state = torch.stack([dof_pos, torch.zeros_like(dof_pos)], dim=-1).squeeze().
 gym.set_dof_state_tensor_indexed(sim, gymtorch.unwrap_tensor(dof_state), gymtorch.unwrap_tensor(env_ids), len(env_ids))
 gym.refresh_rigid_body_state_tensor(sim)
 
-gym.simulate(sim)
+# gym.simulate(sim)
 
 # ------- load motion action results -------
 PHC_RESULT = os.path.join("/",
@@ -256,7 +286,9 @@ while not gym.query_viewer_has_closed(viewer):
 
     # gym.simulate(sim)
 
-    pd_target[:] = actions[t_idx % tota_steps]
+    pd_tar = action_to_pd_target(actions[t_idx % tota_steps], device=device)
+
+    pd_target[:] = pd_tar
 
     # If actions already match DOF ordering and count:
     # (If you needed expansion from a reduced action set, use the expanded vector instead.)

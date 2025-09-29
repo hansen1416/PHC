@@ -1092,6 +1092,10 @@ class HumanoidIm(humanoid_amp_task.HumanoidAMPTask):
         self.random_occlu_idx[:, [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]] = False
 
     def _action_to_pd_targets(self, action):
+
+        print("_pd_action_offset", self._pd_action_offset)
+        print("_pd_action_scale", self._pd_action_scale)
+
         if self._res_action:
             pd_tar = self.ref_dof_pos + self._pd_action_scale * action
             pd_lower = self._dof_pos - np.pi / 2
