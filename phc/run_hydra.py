@@ -36,6 +36,9 @@ python phc/run_hydra.py learning=im_mcp     exp_name=phc_kp_mcp_iccv     test=Tr
 
 python phc/run_hydra.py learning=im_mcp     exp_name=phc_kp_mcp_iccv     test=True     env=env_im_getup_mcp     robot=smpl_humanoid     robot.freeze_hand=True     robot.box_body=False     env.z_activation=relu     env.motion_file=data/amass/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl env.models=['output/HumanoidIm/phc_kp_pnn_iccv/Humanoid.pth']     env.num_envs=1     env.obs_v=7     headless=False     epoch=-1   im_eval=True collect_dataset=True
 
+python phc/run_hydra.py learning=im_mcp     exp_name=phc_kp_mcp_iccv     test=True     env=env_im_getup_mcp     robot=smpl_humanoid     robot.freeze_hand=True     robot.box_body=False     env.z_activation=relu     env.motion_file=data/amass/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl env.models=['output/HumanoidIm/phc_kp_pnn_iccv/Humanoid.pth']     env.num_envs=1     env.obs_v=7     headless=False     epoch=-1   im_eval=True collect_dataset=True
+
+
 
 """
 

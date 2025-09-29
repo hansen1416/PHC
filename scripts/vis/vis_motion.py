@@ -117,6 +117,10 @@ results_pair = [
     "motion_file": "data/amass/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl",
     "phc_result": "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses/noise_False_0.05_2025-09-29-21:27:25.pkl"
     },
+    {
+    "motion_file": "data/amass/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl",
+    "phc_result": "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1General_c3d_A3-Swing_poses/noise_False_0.05_2025-09-29-21:35:12.pkl"
+    },
 ]
 
 result_i = int(args.pos_index)
