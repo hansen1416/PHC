@@ -88,6 +88,37 @@ args = gymutil.parse_arguments(description="Joint monkey: Animate degree-of-free
                                }])
 
 
+# motion_file = "data/amass/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl"
+# motion_file = "data/amass/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl"
+
+results_pair = [
+    {"motion_file": "data/amass/pkls/0-ACCAD_Male2General_c3d_A11-Crawl_poses.pkl",
+     "phc_result": os.path.join("/",
+        "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
+        "phc_kp_mcp_iccv", "phc_act", "0-ACCAD_Male2General_c3d_A11-Crawl_poses",
+        "noise_False_0.05_2025-09-28-22:19:46.pkl")},
+    {"motion_file": "sample_data/amass_isaac_standing_upright_slim.pkl",
+        "phc_result": os.path.join("/",
+            "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
+            "phc_kp_mcp_iccv", "phc_act", "amass_isaac_standing_upright_slim",
+            "noise_False_0.05_2025-09-29-16:02:08.pkl")},
+    {"motion_file": "data/amass/pkls/0-ACCAD_MartialArtsWalksTurns_c3d_E15-blockleftmiddle_poses.pkl",
+        "phc_result": os.path.join("/",
+            "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
+            "phc_kp_mcp_iccv", "phc_act", "0-ACCAD_MartialArtsWalksTurns_c3d_E15-blockleftmiddle_poses",
+            "noise_False_0.05_2025-09-29-16:18:10.pkl")},
+    {
+    "motion_file": "data/amass/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl",
+    "phc_result": "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses/noise_False_0.05_2025-09-29-21:27:25.pkl"
+    },
+]
+
+result_i = 3
+
+motion_file = results_pair[result_i]["motion_file"]
+phc_result = results_pair[result_i]["phc_result"]
+
+
 # initialize gym
 gym = gymapi.acquire_gym()
 
@@ -152,38 +183,28 @@ envs = []
 actor_handles = []
 
 num_dofs = gym.get_asset_dof_count(asset)
-print("Creating %d environments" % num_envs)
-for i in range(num_envs):
-    # create env
-    env = gym.create_env(sim, env_lower, env_upper, num_per_row)
-    envs.append(env)
 
-    # add actor
-    pose = gymapi.Transform()
-    pose.p = gymapi.Vec3(0.0, 0, 0.0)
-    pose.r = gymapi.Quat(0, 0.0, 0.0, 1)
+# create env
+env = gym.create_env(sim, env_lower, env_upper, num_per_row)
+envs.append(env)
 
-    actor_handle = gym.create_actor(env, asset, pose, "actor", i, 1)
-    actor_handles.append(actor_handle)
+# add actor
+pose = gymapi.Transform()
+pose.p = gymapi.Vec3(-0.2019,  0.0334,  0.8900)
+pose.r = gymapi.Quat(0, 0.0, 0.0, 1)
 
-    # set default DOF positions
-    dof_states = np.zeros(num_dofs, dtype=gymapi.DofState.dtype)
-    gym.set_actor_dof_states(env, actor_handle, dof_states, gymapi.STATE_ALL)
+actor_handle = gym.create_actor(env, asset, pose, "actor", 0, 1)
+actor_handles.append(actor_handle)
 
-    props = gym.get_actor_dof_properties(env, actor_handle)
-    props["driveMode"].fill(gymapi.DOF_MODE_POS)            # PD position mode
-    # Reasonable generic gains (tune to match training if needed)
-    # props["stiffness"][:] = np.where(props["stiffness"] == 0, 80.0, props["stiffness"])
-    # props["damping"][:]   = np.where(props["damping"]   == 0,  2.0, props["damping"])
+# set default DOF positions
+dof_states = np.zeros(num_dofs, dtype=gymapi.DofState.dtype)
+gym.set_actor_dof_states(env, actor_handle, dof_states, gymapi.STATE_ALL)
 
-    # set stiffness and damping all to 0 to use torque control directly
-    # props["stiffness"][:] = 0.0
-    # props["damping"][:]   = 0.0
+props = gym.get_actor_dof_properties(env, actor_handle)
+props["driveMode"].fill(gymapi.DOF_MODE_POS)            # PD position mode
+# Reasonable generic gains (tune to match training if needed)
 
-    # print(props["stiffness"])
-    # print(props["damping"])
-
-    gym.set_actor_dof_properties(env, actor_handle, props) 
+gym.set_actor_dof_properties(env, actor_handle, props) 
 
 # Setup Motion
 body_ids = []
@@ -195,11 +216,7 @@ for body_name in key_body_names:
 gym.prepare_sim(sim)
 body_ids = np.array(body_ids)
 
-motion_file = "data/amass/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl"
-motion_file = "data/amass/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl"
-motion_file = "data/amass/pkls/0-ACCAD_Male2General_c3d_A11-Crawl_poses.pkl"
-motion_file = "sample_data/amass_isaac_standing_upright_slim.pkl"
-motion_file = "data/amass/pkls/0-ACCAD_MartialArtsWalksTurns_c3d_E15-blockleftmiddle_poses.pkl"
+
 
 motion_data = joblib.load(motion_file)
 
@@ -267,25 +284,7 @@ gym.refresh_actor_root_state_tensor(sim)
 gym.refresh_rigid_body_state_tensor(sim)
 
 # ------- load motion action results -------
-PHC_RESULT = os.path.join("/",
-    "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
-    "phc_kp_mcp_iccv", "phc_act", "0-ACCAD_Male2General_c3d_A11-Crawl_poses",
-    "noise_False_0.05_2025-09-28-22:19:46.pkl"
-)
-
-PHC_RESULT = os.path.join("/",
-    "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
-    "phc_kp_mcp_iccv", "phc_act", "amass_isaac_standing_upright_slim",
-    "noise_False_0.05_2025-09-29-16:02:08.pkl")
-
-PHC_RESULT = os.path.join("/",
-    "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
-    "phc_kp_mcp_iccv", "phc_act", "0-ACCAD_MartialArtsWalksTurns_c3d_E15-blockleftmiddle_poses",
-    "noise_False_0.05_2025-09-29-16:18:10.pkl")
-
-
-
-data  = joblib.load(PHC_RESULT)
+data  = joblib.load(phc_result)
 actions = data['env_action'][0]   # (N, 69)
 
 actions = torch.tensor(actions, dtype=torch.float32).to(device)
@@ -325,13 +324,13 @@ while not gym.query_viewer_has_closed(viewer):
     gym.draw_viewer(viewer, sim, True)
 
 
-    gym.refresh_dof_state_tensor(sim)
-    gym.refresh_actor_root_state_tensor(sim)
-    gym.refresh_rigid_body_state_tensor(sim)
+    # gym.refresh_dof_state_tensor(sim)
+    # gym.refresh_actor_root_state_tensor(sim)
+    # gym.refresh_rigid_body_state_tensor(sim)
 
-    gym.refresh_force_sensor_tensor(sim)
-    gym.refresh_dof_force_tensor(sim)
-    gym.refresh_net_contact_force_tensor(sim)
+    # gym.refresh_force_sensor_tensor(sim)
+    # gym.refresh_dof_force_tensor(sim)
+    # gym.refresh_net_contact_force_tensor(sim)
 
     # Wait for dt to elapse in real time.
     # This synchronizes the physics simulation with the rendering rate.
