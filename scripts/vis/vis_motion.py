@@ -160,7 +160,7 @@ for i in range(num_envs):
 
     # add actor
     pose = gymapi.Transform()
-    pose.p = gymapi.Vec3(0.0, 0, 1.0)
+    pose.p = gymapi.Vec3(0.0, 0, 0.0)
     pose.r = gymapi.Quat(0, 0.0, 0.0, 1)
 
     actor_handle = gym.create_actor(env, asset, pose, "actor", i, 1)
@@ -198,6 +198,8 @@ body_ids = np.array(body_ids)
 motion_file = "data/amass/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl"
 motion_file = "data/amass/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl"
 motion_file = "data/amass/pkls/0-ACCAD_Male2General_c3d_A11-Crawl_poses.pkl"
+motion_file = "sample_data/amass_isaac_standing_upright_slim.pkl"
+motion_file = "data/amass/pkls/0-ACCAD_MartialArtsWalksTurns_c3d_E15-blockleftmiddle_poses.pkl"
 
 motion_data = joblib.load(motion_file)
 
@@ -251,13 +253,18 @@ root_states = torch.cat([root_pos, root_rot, root_vel, root_ang_vel], dim=-1).re
 # gym.set_actor_root_state_tensor(sim, gymtorch.unwrap_tensor(root_states))
 gym.set_actor_root_state_tensor_indexed(sim, gymtorch.unwrap_tensor(root_states), gymtorch.unwrap_tensor(env_ids), len(env_ids))
 
-gym.refresh_actor_root_state_tensor(sim)
+
 
 dof_state = torch.stack([dof_pos, torch.zeros_like(dof_pos)], dim=-1).squeeze().repeat(num_envs, 1)
 gym.set_dof_state_tensor_indexed(sim, gymtorch.unwrap_tensor(dof_state), gymtorch.unwrap_tensor(env_ids), len(env_ids))
-gym.refresh_rigid_body_state_tensor(sim)
 
-# gym.simulate(sim)
+
+
+gym.simulate(sim)
+gym.fetch_results(sim, True)
+
+gym.refresh_actor_root_state_tensor(sim)
+gym.refresh_rigid_body_state_tensor(sim)
 
 # ------- load motion action results -------
 PHC_RESULT = os.path.join("/",
@@ -266,8 +273,20 @@ PHC_RESULT = os.path.join("/",
     "noise_False_0.05_2025-09-28-22:19:46.pkl"
 )
 
+PHC_RESULT = os.path.join("/",
+    "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
+    "phc_kp_mcp_iccv", "phc_act", "amass_isaac_standing_upright_slim",
+    "noise_False_0.05_2025-09-29-16:02:08.pkl")
+
+PHC_RESULT = os.path.join("/",
+    "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
+    "phc_kp_mcp_iccv", "phc_act", "0-ACCAD_MartialArtsWalksTurns_c3d_E15-blockleftmiddle_poses",
+    "noise_False_0.05_2025-09-29-16:18:10.pkl")
+
+
+
 data  = joblib.load(PHC_RESULT)
-actions = data['clean_action'][0]   # (N, 69)
+actions = data['env_action'][0]   # (N, 69)
 
 actions = torch.tensor(actions, dtype=torch.float32).to(device)
 
@@ -304,6 +323,15 @@ while not gym.query_viewer_has_closed(viewer):
     # update the viewer
     gym.step_graphics(sim)
     gym.draw_viewer(viewer, sim, True)
+
+
+    gym.refresh_dof_state_tensor(sim)
+    gym.refresh_actor_root_state_tensor(sim)
+    gym.refresh_rigid_body_state_tensor(sim)
+
+    gym.refresh_force_sensor_tensor(sim)
+    gym.refresh_dof_force_tensor(sim)
+    gym.refresh_net_contact_force_tensor(sim)
 
     # Wait for dt to elapse in real time.
     # This synchronizes the physics simulation with the rendering rate.

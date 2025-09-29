@@ -1093,8 +1093,8 @@ class HumanoidIm(humanoid_amp_task.HumanoidAMPTask):
 
     def _action_to_pd_targets(self, action):
 
-        print("_pd_action_offset", self._pd_action_offset)
-        print("_pd_action_scale", self._pd_action_scale)
+        # print("_pd_action_offset", self._pd_action_offset)
+        # print("_pd_action_scale", self._pd_action_scale)
 
         if self._res_action:
             pd_tar = self.ref_dof_pos + self._pd_action_scale * action

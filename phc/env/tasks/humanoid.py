@@ -1487,7 +1487,7 @@ class Humanoid(BaseTask):
 
                 else:
 
-                    print(self.actions)
+                    # print(self.actions)
 
                     pd_tar = self._action_to_pd_targets(self.actions)
                     if self._freeze_hand:
@@ -1497,7 +1497,7 @@ class Humanoid(BaseTask):
                         pd_tar[:, self._dof_names.index("L_Toe") * 3:(self._dof_names.index("L_Toe") * 3 + 3)] = 0
                         pd_tar[:, self._dof_names.index("R_Toe") * 3:(self._dof_names.index("R_Toe") * 3 + 3)] = 0
 
-                    print(pd_tar)
+                    # print(pd_tar)
 
             elif self.humanoid_type in ['h1','g1', ]:
                 pd_tar = self._action_to_pd_targets(self.actions)
