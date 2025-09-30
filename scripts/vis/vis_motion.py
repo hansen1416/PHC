@@ -137,18 +137,13 @@ sim_params = gymapi.SimParams()
 sim_params.dt = dt = 1.0 / 60.0
 sim_params.up_axis = gymapi.UP_AXIS_Z
 sim_params.gravity = gymapi.Vec3(0.0, 0.0, -9.81)
-if args.physics_engine == gymapi.SIM_FLEX:
-    pass
-elif args.physics_engine == gymapi.SIM_PHYSX:
-    sim_params.physx.solver_type = 1
-    sim_params.physx.num_position_iterations = 6
-    sim_params.physx.num_velocity_iterations = 0
-    sim_params.physx.num_threads = args.num_threads
-    sim_params.physx.use_gpu = args.use_gpu
-    sim_params.use_gpu_pipeline = args.use_gpu_pipeline
 
-if not args.use_gpu_pipeline:
-    print("WARNING: Forcing CPU pipeline.")
+sim_params.physx.solver_type = 1
+sim_params.physx.num_position_iterations = 6
+sim_params.physx.num_velocity_iterations = 0
+sim_params.physx.num_threads = args.num_threads
+sim_params.physx.use_gpu = args.use_gpu
+sim_params.use_gpu_pipeline = args.use_gpu_pipeline
 
 sim = gym.create_sim(args.compute_device_id, args.graphics_device_id, args.physics_engine, sim_params)
 if sim is None:
