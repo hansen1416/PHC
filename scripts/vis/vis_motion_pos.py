@@ -170,7 +170,21 @@ props = gym.get_actor_dof_properties(env, actor_handle)
 # props["driveMode"].fill(gymapi.DOF_MODE_POS)            # PD position mode
 # Reasonable generic gains (tune to match training if needed)
 
-gym.set_actor_dof_properties(env, actor_handle, props) 
+gym.set_actor_dof_properties(env, actor_handle, props)
+
+rigid_props = gym.get_actor_rigid_shape_properties(env, actor_handle)
+
+filter_ints = [0, 0, 7, 16, 12, 0, 56, 2, 33, 128, 0, 192, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+for p_idx in range(len(rigid_props)):
+
+    print("Rigid body ", p_idx, " filter: ", filter_ints[p_idx])
+
+    rigid_props[p_idx].filter = filter_ints[p_idx]
+
+    print("Rigid body ", p_idx, " filter after: ", rigid_props[p_idx].filter)
+
+gym.set_actor_rigid_shape_properties(env, actor_handle, rigid_props)
 
 gym.prepare_sim(sim)
 

@@ -211,17 +211,21 @@ props["driveMode"].fill(gymapi.DOF_MODE_POS)            # PD position mode
 
 gym.set_actor_dof_properties(env, actor_handle, props) 
 
-# Setup Motion
-body_ids = []
-key_body_names = ["R_Ankle", "L_Ankle", "R_Wrist", "L_Wrist"]
-for body_name in key_body_names:
-    body_id = gym.find_actor_rigid_body_handle(envs[0], actor_handles[0], body_name)
-    assert (body_id != -1)
-    body_ids.append(body_id)
+rigid_props = gym.get_actor_rigid_shape_properties(env, actor_handle)
+
+filter_ints = [0, 0, 7, 16, 12, 0, 56, 2, 33, 128, 0, 192, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+for p_idx in range(len(rigid_props)):
+
+    print("Rigid body ", p_idx, " filter: ", filter_ints[p_idx])
+
+    rigid_props[p_idx].filter = filter_ints[p_idx]
+
+    print("Rigid body ", p_idx, " filter after: ", rigid_props[p_idx].filter)
+
+gym.set_actor_rigid_shape_properties(env, actor_handle, rigid_props)
+
 gym.prepare_sim(sim)
-body_ids = np.array(body_ids)
-
-
 
 motion_data = joblib.load(motion_file)
 
