@@ -26,6 +26,8 @@ import os.path as osp
 
 sys.path.append(os.getcwd())
 
+from uuid import uuid4
+from tqdm import tqdm
 import joblib
 import numpy as np
 from isaacgym import gymapi, gymutil, gymtorch
@@ -164,9 +166,49 @@ if viewer is None:
 asset_root = os.path.join("phc", "data", "assets", "mjcf")
 asset_file = "smpl_humanoid.xml"
 
+robot_cfg = {'mesh': False, 'replace_feet': True, 'rel_joint_lm': False, 'upright_start': True, 
+             'remove_toe': False, 'freeze_hand': True, 'real_weight_porpotion_capsules': True, 
+             'real_weight_porpotion_boxes': True, 'real_weight': True, 'masterfoot': False, 
+             'master_range': 30, 'big_ankle': True, 'box_body': False, 'body_params': {}, 
+             'joint_params': {}, 'geom_params': {}, 'actuator_params': {}, 'model': 'smpl', 'sim': 'isaacgym'}
+
+robot = SMPL_Robot(
+    robot_cfg,
+    data_dir="data/smpl",
+)
+
+def _create_smpl_humanoid_xml(num_humanoids, smpl_robot, queue, pid):
+    np.random.seed(np.random.randint(5002) * (pid + 1))
+    res = {}
+    
+    pbar = tqdm(num_humanoids)
+
+    for idx in pbar:
+
+        gender_beta = np.zeros(17)
+        asset_id = uuid4()
+        
+        if not smpl_robot is None:
+            asset_id = uuid4()
+            asset_file_real = f"/tmp/smpl/smpl_humanoid_{asset_id}.xml"
+            smpl_robot.load_from_skeleton(betas=torch.from_numpy(gender_beta[None, 1:]), gender=gender_beta[0:1], objs_info=None)
+            smpl_robot.write_xml(asset_file_real)
+        else:
+            asset_file_real = f"phc/data/assets/mjcf/smpl_{int(gender_beta[0])}_humanoid.xml"
+
+        res[idx] = (gender_beta, asset_file_real)
+
+    return res
+
+gender_beta, asset_file_real = _create_smpl_humanoid_xml([0], robot, None, 0)[0]
+sk_tree = SkeletonTree.from_mjcf(asset_file_real)
+
 sk_tree = SkeletonTree.from_mjcf(osp.join(asset_root, asset_file))
 
 asset_options = gymapi.AssetOptions()
+asset_options.angular_damping = 0.01
+asset_options.max_angular_velocity = 100.0
+asset_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
 
 print("Loading asset '%s' from '%s'" % (asset_file, asset_root))
 asset = gym.load_asset(sim, asset_root, asset_file, asset_options)
@@ -216,12 +258,7 @@ rigid_props = gym.get_actor_rigid_shape_properties(env, actor_handle)
 filter_ints = [0, 0, 7, 16, 12, 0, 56, 2, 33, 128, 0, 192, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 for p_idx in range(len(rigid_props)):
-
-    print("Rigid body ", p_idx, " filter: ", filter_ints[p_idx])
-
     rigid_props[p_idx].filter = filter_ints[p_idx]
-
-    print("Rigid body ", p_idx, " filter after: ", rigid_props[p_idx].filter)
 
 gym.set_actor_rigid_shape_properties(env, actor_handle, rigid_props)
 

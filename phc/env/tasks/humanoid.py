@@ -165,14 +165,14 @@ class Humanoid(BaseTask):
         self._initial_humanoid_root_states[:, 7:13] = 0
 
         # save self._humanoid_root_states and self._initial_humanoid_root_states to local file
-        data = {
-            "humanoid_root_states": self._humanoid_root_states.detach().cpu().clone(),
-            "initial_root_states": self._initial_humanoid_root_states.detach().cpu().clone(),
-        }
+        # data = {
+        #     "humanoid_root_states": self._humanoid_root_states.detach().cpu().clone(),
+        #     "initial_root_states": self._initial_humanoid_root_states.detach().cpu().clone(),
+        # }
 
-        print("-------------------------1111")
+        # print("-------------------------1111")
 
-        file_path = os.path.join("./", f"init_states1.pkl")
+        # file_path = os.path.join("./", f"init_states1.pkl")
 
         self._humanoid_actor_ids = num_actors * torch.arange(self.num_envs, device=self.device, dtype=torch.int32)
 
@@ -566,7 +566,7 @@ class Humanoid(BaseTask):
         self.gym.set_actor_root_state_tensor_indexed(self.sim, gymtorch.unwrap_tensor(self._root_states), gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
         # Applies joint positions and joint velocities that _set_env_state(...) wrote into self._dof_pos/self._dof_vel (slices of self._dof_state). 
         self.gym.set_dof_state_tensor_indexed(self.sim, gymtorch.unwrap_tensor(self._dof_state), gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
-        # Sets the PD position targets to the same joint positions so the controller doesn’t immediately pull the joints away from the initialized pose.
+        # Sets the PD position targets to the same joint positions so the controller doesn’t immediately pull the joints away from the initialized pose.!!!!!
         self.gym.set_dof_position_target_tensor_indexed( self.sim, gymtorch.unwrap_tensor(self._dof_pos.contiguous()), gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32)) 
         
         
