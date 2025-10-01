@@ -317,7 +317,6 @@ root_states = torch.cat([root_pos, root_rot, root_vel, root_ang_vel], dim=-1).re
 dof_state = torch.stack([dof_pos, torch.zeros_like(dof_pos)], dim=-1).squeeze().repeat(num_envs, 1)
 
 
-
 # ------- load motion action results -------
 data  = joblib.load(phc_result)
 actions = data['env_action'][0]   # (N, 69)
@@ -339,12 +338,14 @@ while not gym.query_viewer_has_closed(viewer):
     if t_idx == 0:
         gym.set_actor_root_state_tensor_indexed(sim, gymtorch.unwrap_tensor(root_states), gymtorch.unwrap_tensor(env_ids), len(env_ids))
         gym.set_dof_state_tensor_indexed(sim, gymtorch.unwrap_tensor(dof_state), gymtorch.unwrap_tensor(env_ids), len(env_ids))
+        gym.set_dof_position_target_tensor_indexed(sim, gymtorch.unwrap_tensor(dof_pos.contiguous()), gymtorch.unwrap_tensor(env_ids), len(env_ids)) 
 
         gym.simulate(sim)
         gym.fetch_results(sim, True)
 
         gym.refresh_actor_root_state_tensor(sim)
         gym.refresh_rigid_body_state_tensor(sim)
+        gym.refresh_dof_state_tensor(sim)
 
     # step the physics
 
