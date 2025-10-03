@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/zhengyiluo-phc-badge.png)](https://mseep.ai/app/zhengyiluo-phc)
+
 # Perpetual Humanoid Control for Real-time Simulated Avatars
 
 Official implementation of ICCV 2023 paper: "Perpetual Humanoid Control for Real-time Simulated Avatars". In this paper, we present a physics-based humanoid controller that achieves high-fidelity motion imitation and fail-statue recovery in the presence of noisy input (e.g. pose estimates from video or generated from language) and unexpected falls. No external forces is used. 
@@ -5,6 +7,7 @@ Official implementation of ICCV 2023 paper: "Perpetual Humanoid Control for Real
 [[paper]](https://arxiv.org/abs/2305.06456) [[website]](https://zhengyiluo.github.io/PHC/) [[Video]](https://www.youtube.com/watch?v=zS6Y00EW37A)
 
 <div float="center">
+<img src="assets/isaaclab_teaser.gif" />
   <img src="assets/phc_teaser.gif" />
   <img src="assets/h1_phc.gif" />
 </div>
@@ -32,6 +35,8 @@ Official implementation of ICCV 2023 paper: "Perpetual Humanoid Control for Real
 * [References](#references)
 
 ## News 🚩
+
+[August 21, 2025] Adding sample eval code in IsaacLab. PHC policy can directly be inferred in IsaacLab. `python scripts/eval_in_isaaclab.py`. 
 
 [December 10, 2024] Release process for generating offline dataset (PHC_Act) for offline RL or behavior cloning (developed by [@kangnil](https://github.com/kangnil)). See [docs/offline_dataset.md](docs/offline_dataset.md) for more details. 
 
