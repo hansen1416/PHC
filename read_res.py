@@ -3,7 +3,6 @@ import numpy as np
 import re
 
 
-file_path = 'output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Male2General_c3d_A11-Crawl_poses/noise_False_0.05_2025-09-17-21:24:04.pkl'
 
 def read_phc_result(file_path):
     """
@@ -102,6 +101,11 @@ def read_phc_result(file_path):
 
     return data
 
+file_path = 'output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Male2General_c3d_A11-Crawl_poses/noise_False_0.05_2025-09-17-21:24:04.pkl'
+
+file_path = "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses/noise_False_0.05_2025-09-29-21:27:25.pkl"
+file_path = "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses/noise_False_0.05_2025-10-02-22:39:21.pkl"
+# file_path = "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses/noise_False_0.05_2025-10-02-22:49:43.pkl"
 
 res = read_phc_result(file_path)
 
@@ -130,4 +134,4 @@ res = read_phc_result(file_path)
 
 
 
-print(res['config'])
+print(res['clean_action'][0])  # e.g., (T, A)
