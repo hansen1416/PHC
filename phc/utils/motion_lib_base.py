@@ -205,6 +205,7 @@ class MotionLibBase():
         num_motion_to_load = len(skeleton_trees)
 
         if random_sample:
+            # here it will load 3072 motions
             sample_idxes = torch.multinomial(self._sampling_prob, num_samples=num_motion_to_load, replacement=True).to(self._device)
         else:
             sample_idxes = torch.remainder(torch.arange(len(skeleton_trees)) + start_idx, self._num_unique_motions ).to(self._device)

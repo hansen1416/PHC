@@ -1,7 +1,7 @@
-# if given, will override the device setting in gym. 
+# if given, will override the device setting in gym.
 task: HumanoidIm
 project_name: "PHC"
-notes:  ""
+notes: ""
 motion_file: ""
 num_envs: 3072
 env_spacing: 5
@@ -27,15 +27,37 @@ shape_resampling_interval: 500
 control_mode: "isaac_pd"
 power_scale: 1.0
 controlFrequencyInv: 2 # 30 Hz
-stateInit: "Random"  
+stateInit: "Random"
 hybridInitProb: 0.5
 numAMPObsSteps: 10
 
 local_root_obs: True
 root_height_obs: True
-key_bodies: ["R_Ankle", "L_Ankle", "R_Wrist",  "L_Wrist"]
+key_bodies: ["R_Ankle", "L_Ankle", "R_Wrist", "L_Wrist"]
 contact_bodies: ["R_Ankle", "L_Ankle", "R_Toe", "L_Toe"]
-reset_bodies: ['Pelvis', 'L_Hip', 'L_Knee', 'R_Hip', 'R_Knee', 'Torso', 'Spine', 'Chest', 'Neck', 'Head', 'L_Thorax', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'L_Hand', 'R_Thorax', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'R_Hand']
+reset_bodies:
+  [
+    "Pelvis",
+    "L_Hip",
+    "L_Knee",
+    "R_Hip",
+    "R_Knee",
+    "Torso",
+    "Spine",
+    "Chest",
+    "Neck",
+    "Head",
+    "L_Thorax",
+    "L_Shoulder",
+    "L_Elbow",
+    "L_Wrist",
+    "L_Hand",
+    "R_Thorax",
+    "R_Shoulder",
+    "R_Elbow",
+    "R_Wrist",
+    "R_Hand",
+  ]
 terminationHeight: 0.15
 enableEarlyTermination: True
 terminationDistance: 0.25
@@ -44,7 +66,6 @@ terminationDistance: 0.25
 numTrajSamples: 3
 trajSampleTimestepInv: 3
 enableTaskObs: True
-
 
 plane:
   staticFriction: 1.0

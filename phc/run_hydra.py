@@ -261,6 +261,16 @@ env_configurations.register('rlgpu', {'env_creator': lambda **kwargs: create_rlg
 
 
 def build_alg_runner(algo_observer):
+    """
+
+    one model key: 'amp' (the wrapper)
+    multiple network keys: 'amp', 'amp_mcp', 'amp_pnn'
+
+    algo="im_amp" for motion imitation on AMASS; 
+    algo="amp" for pure AMP prior RL.
+    Pick network="amp_mcp" if you want multi-primitive composition; 
+    network="amp_pnn" if you want progressive/continual skill accumulation.
+    """
     runner = Runner(algo_observer)
     runner.player_factory.register_builder('amp_discrete', lambda **kwargs: amp_players.AMPPlayerDiscrete(**kwargs))
     
@@ -312,16 +322,16 @@ def main(cfg_hydra: DictConfig) -> None:
     
     cfg.train = not cfg.test
     project_name = cfg.get("project_name", "egoquest")
-    if (not cfg.no_log) and (not cfg.test) and (not cfg.debug):
-        wandb.init(
-            project=project_name,
-            resume=not cfg.resume_str is None,
-            id=cfg.resume_str,
-            notes=cfg.get("notes", "no notes"),
-        )
-        wandb.config.update(cfg, allow_val_change=True)
-        wandb.run.name = cfg.exp_name
-        wandb.run.save()
+    # if (not cfg.no_log) and (not cfg.test) and (not cfg.debug):
+    #     wandb.init(
+    #         project=project_name,
+    #         resume=not cfg.resume_str is None,
+    #         id=cfg.resume_str,
+    #         notes=cfg.get("notes", "no notes"),
+    #     )
+    #     wandb.config.update(cfg, allow_val_change=True)
+    #     wandb.run.name = cfg.exp_name
+    #     wandb.run.save()
     
     set_seed(cfg.get("seed", -1), cfg.get("torch_deterministic", False))
 
