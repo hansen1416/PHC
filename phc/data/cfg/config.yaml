@@ -12,7 +12,7 @@ notes: "Default Notes"
 exp_name: &exp_name humanoid_smpl
 headless: True
 seed: 0
-no_log: False
+no_log: True
 resume_str: null
 num_threads: 64
 test: False
@@ -32,7 +32,6 @@ train: True
 collect_dataset: False
 disable_multiprocessing: True
 
-
 ####### Testing Configs. ########
 server_mode: False
 has_eval: True
@@ -50,4 +49,3 @@ hydra:
       OMP_NUM_THREADS: 1
   run:
     dir: output/HumanoidIm/${exp_name}
-

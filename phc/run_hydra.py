@@ -271,6 +271,11 @@ def main(cfg_hydra: DictConfig) -> None:
     global cfg
     
     cfg = EasyDict(OmegaConf.to_container(cfg_hydra, resolve=True))
+
+    # print(cfg.no_log)
+    # print(cfg.env.num_envs)
+    # print(cfg.learning.params.config.horizon_length)
+    # print(cfg.learning.params.config.minibatch_size)    
     
     set_np_formatting()
 

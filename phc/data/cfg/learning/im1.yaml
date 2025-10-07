@@ -8,7 +8,7 @@ params:
     name: amp
 
   network:
-    name: amp_pnn
+    name: amp
     separate: True
     discrete: False
 
@@ -67,20 +67,19 @@ params:
     entropy_coef: 0.0
     truncate_grads: True
     grad_norm: 50.0
-    ppo: True
     e_clip: 0.2
-    horizon_length: 32
-    minibatch_size: 16384
+    horizon_length: 4
+    minibatch_size: 4
     mini_epochs: 6
     critic_coef: 5
     clip_value: False
-    
+
     bounds_loss_coef: 10
     amp_obs_demo_buffer_size: 200000
     amp_replay_buffer_size: 200000
     amp_replay_keep_prob: 0.01
-    amp_batch_size: 512
-    amp_minibatch_size: 4096
+    amp_batch_size: 1
+    amp_minibatch_size: 4
     disc_coef: 5
     disc_logit_reg: 0.01
     disc_grad_penalty: 5
@@ -91,5 +90,5 @@ params:
     task_reward_w: 0.5
     disc_reward_w: 0.5
 
-    player: 
+    player:
       games_num: 50000000
