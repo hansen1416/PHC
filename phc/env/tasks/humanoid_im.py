@@ -330,6 +330,10 @@ class HumanoidIm(humanoid_amp_task.HumanoidAMPTask):
                 "device": self.device,
                 "step_dt": self.dt,
             })
+
+            # False True cuda:0 5 0.03333333507180214
+            # print(flags.im_eval, self.cfg.disable_multiprocessing ,self.device,self._min_motion_len,self.dt)
+
             motion_eval_file = motion_train_file
             self._motion_train_lib = MotionLibSMPL(motion_lib_cfg)
             motion_lib_cfg.im_eval = True
