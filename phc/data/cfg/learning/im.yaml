@@ -73,9 +73,11 @@ params:
     mini_epochs: 6
     critic_coef: 5
     clip_value: False
-    
+
     bounds_loss_coef: 10
+    # stores real (expert) motion samples for the discriminator.
     amp_obs_demo_buffer_size: 200000
+    # stores policy-generated (fake) motion samples from the generator / policy
     amp_replay_buffer_size: 200000
     amp_replay_keep_prob: 0.01
     amp_batch_size: 512
@@ -90,5 +92,5 @@ params:
     task_reward_w: 0.5
     disc_reward_w: 0.5
 
-    player: 
+    player:
       games_num: 50000000

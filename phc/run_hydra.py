@@ -281,6 +281,8 @@ def main(cfg_hydra: DictConfig) -> None:
         cfg.learning.params.config.minibatch_size = 4
         cfg.learning.params.config.amp_batch_size = 1
         cfg.learning.params.config.amp_minibatch_size = 4
+        cfg.learning.params.config.amp_obs_demo_buffer_size=20
+        cfg.learning.params.config.amp_replay_buffer_size=20
     
     set_np_formatting()
 
