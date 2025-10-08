@@ -72,6 +72,7 @@ args = None
 cfg = None
 cfg_train = None
 
+IS_LOCAL = True
 
 def parse_sim_params(cfg):
     # initialize sim
@@ -272,10 +273,14 @@ def main(cfg_hydra: DictConfig) -> None:
     
     cfg = EasyDict(OmegaConf.to_container(cfg_hydra, resolve=True))
 
-    # print(cfg.no_log)
-    # print(cfg.env.num_envs)
-    # print(cfg.learning.params.config.horizon_length)
-    # print(cfg.learning.params.config.minibatch_size)    
+    if IS_LOCAL:
+        cfg.no_log = True
+        cfg.env.num_envs = 1
+        cfg.env.stateInit = 'Default'
+        cfg.learning.params.config.horizon_length = 4
+        cfg.learning.params.config.minibatch_size = 4
+        cfg.learning.params.config.amp_batch_size = 1
+        cfg.learning.params.config.amp_minibatch_size = 4
     
     set_np_formatting()
 
