@@ -45,6 +45,10 @@ exp_name=phc_prim_iccv env=env_im robot=smpl_humanoid_shape \
 env.motion_file=sample_data/amass_isaac_standing_upright_slim.pkl
 ```
 
+```
+num_threads=1 headless=False test=True epoch=2500
+```
+
 Bigger single-primitive model (more capacity, slower):
 ```
 python phc/run_hydra.py learning=im_big exp_name=phc_prim env=env_im robot=smpl_humanoid env.motion_file=sample_data/amass_isaac_standing_upright_slim.pkl  
