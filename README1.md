@@ -41,8 +41,8 @@ exp_name only labels outputs and logs?
 
 ```
 python phc/run_hydra.py learning=im \
-  exp_name=phc_prim_iccv env=env_im robot=smpl_humanoid \
-  env.motion_file=sample_data/amass_isaac_standing_upright_slim.pkl
+exp_name=phc_prim_iccv env=env_im robot=smpl_humanoid_shape \
+env.motion_file=sample_data/amass_isaac_standing_upright_slim.pkl
 ```
 
 Bigger single-primitive model (more capacity, slower):
