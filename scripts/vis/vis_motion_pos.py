@@ -26,8 +26,6 @@ import os.path as osp
 
 sys.path.append(os.getcwd())
 
-from uuid import uuid4
-from tqdm import tqdm
 import joblib
 import numpy as np
 from isaacgym import gymapi, gymutil, gymtorch
@@ -39,40 +37,6 @@ from phc.utils.flags import flags
 from easydict import EasyDict
 from phc.utils.motion_lib_base import FixHeightMode
 
-
-
-def clamp(x, min_value, max_value):
-    return max(min(x, max_value), min_value)
-
-def action_to_pd_target(action, device='cuda:0'):
-
-    action_offset = torch.tensor([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-       device=device)
-
-    action_scale = torch.tensor([3.1416, 3.1416, 3.1416, 3.1416, 5.0000, 3.1416, 3.1416, 3.1416, 3.1416,
-            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 5.0000, 3.1416,
-            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416,
-            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416,
-            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416,
-            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416,
-            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416,
-            3.1416, 3.1416, 3.1416, 3.1416, 3.1416, 3.1416], device=device)
-
-    # _freeze_hand = True
-
-    pd_target = action_offset + action_scale * action
-
-    SMPL_MUJOCO_NAMES = ['Pelvis', 'L_Hip', 'L_Knee', 'L_Ankle', 'L_Toe', 'R_Hip', 'R_Knee', 'R_Ankle', 'R_Toe', 'Torso', 'Spine', 'Chest', 'Neck', 'Head', 'L_Thorax', 'L_Shoulder', 'L_Elbow', 
-                     'L_Wrist', 'L_Hand', 'R_Thorax', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'R_Hand']
-
-    _dof_names = SMPL_MUJOCO_NAMES[1:]  # exclude pelvis
-
-    pd_target[_dof_names.index("L_Hand") * 3:(_dof_names.index("L_Hand") * 3 + 3)] = 0
-    pd_target[_dof_names.index("R_Hand") * 3:(_dof_names.index("R_Hand") * 3 + 3)] = 0
-
-    return pd_target
 
 # parse arguments
 args = gymutil.parse_arguments(description="Joint monkey: Animate degree-of-freedom ranges",
@@ -95,9 +59,6 @@ args = gymutil.parse_arguments(description="Joint monkey: Animate degree-of-free
                                    "help": "Visualize DOF axis"
                                }])
 
-
-# motion_file = "data/amass/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl"
-# motion_file = "data/amass/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl"
 
 results_pair = [
     {"motion_file": "data/amass/pkls/0-ACCAD_Male2General_c3d_A11-Crawl_poses.pkl",
@@ -128,8 +89,6 @@ results_pair = [
 result_i = int(args.pos_index)
 
 motion_file = results_pair[result_i]["motion_file"]
-phc_result = results_pair[result_i]["phc_result"]
-
 
 # initialize gym
 gym = gymapi.acquire_gym()
@@ -166,49 +125,9 @@ if viewer is None:
 asset_root = os.path.join("phc", "data", "assets", "mjcf")
 asset_file = "smpl_humanoid.xml"
 
-robot_cfg = {'mesh': False, 'replace_feet': True, 'rel_joint_lm': False, 'upright_start': True, 
-             'remove_toe': False, 'freeze_hand': True, 'real_weight_porpotion_capsules': True, 
-             'real_weight_porpotion_boxes': True, 'real_weight': True, 'masterfoot': False, 
-             'master_range': 30, 'big_ankle': True, 'box_body': False, 'body_params': {}, 
-             'joint_params': {}, 'geom_params': {}, 'actuator_params': {}, 'model': 'smpl', 'sim': 'isaacgym'}
-
-robot = SMPL_Robot(
-    robot_cfg,
-    data_dir="data/smpl",
-)
-
-def _create_smpl_humanoid_xml(num_humanoids, smpl_robot, queue, pid):
-    np.random.seed(np.random.randint(5002) * (pid + 1))
-    res = {}
-    
-    pbar = tqdm(num_humanoids)
-
-    for idx in pbar:
-
-        gender_beta = np.zeros(17)
-        asset_id = uuid4()
-        
-        if not smpl_robot is None:
-            asset_id = uuid4()
-            asset_file_real = f"/tmp/smpl/smpl_humanoid_{asset_id}.xml"
-            smpl_robot.load_from_skeleton(betas=torch.from_numpy(gender_beta[None, 1:]), gender=gender_beta[0:1], objs_info=None)
-            smpl_robot.write_xml(asset_file_real)
-        else:
-            asset_file_real = f"phc/data/assets/mjcf/smpl_{int(gender_beta[0])}_humanoid.xml"
-
-        res[idx] = (gender_beta, asset_file_real)
-
-    return res
-
-gender_beta, asset_file_real = _create_smpl_humanoid_xml([0], robot, None, 0)[0]
-sk_tree = SkeletonTree.from_mjcf(asset_file_real)
-
 sk_tree = SkeletonTree.from_mjcf(osp.join(asset_root, asset_file))
 
 asset_options = gymapi.AssetOptions()
-asset_options.angular_damping = 0.01
-asset_options.max_angular_velocity = 100.0
-asset_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
 
 print("Loading asset '%s' from '%s'" % (asset_file, asset_root))
 asset = gym.load_asset(sim, asset_root, asset_file, asset_options)
@@ -248,21 +167,27 @@ dof_states = np.zeros(num_dofs, dtype=gymapi.DofState.dtype)
 gym.set_actor_dof_states(env, actor_handle, dof_states, gymapi.STATE_ALL)
 
 props = gym.get_actor_dof_properties(env, actor_handle)
-props["driveMode"].fill(gymapi.DOF_MODE_POS)            # PD position mode
+# props["driveMode"].fill(gymapi.DOF_MODE_POS)            # PD position mode
 # Reasonable generic gains (tune to match training if needed)
 
-gym.set_actor_dof_properties(env, actor_handle, props) 
+gym.set_actor_dof_properties(env, actor_handle, props)
 
 rigid_props = gym.get_actor_rigid_shape_properties(env, actor_handle)
 
 filter_ints = [0, 0, 7, 16, 12, 0, 56, 2, 33, 128, 0, 192, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 for p_idx in range(len(rigid_props)):
+
+    print("Rigid body ", p_idx, " filter: ", filter_ints[p_idx])
+
     rigid_props[p_idx].filter = filter_ints[p_idx]
+
+    print("Rigid body ", p_idx, " filter after: ", rigid_props[p_idx].filter)
 
 gym.set_actor_rigid_shape_properties(env, actor_handle, rigid_props)
 
 gym.prepare_sim(sim)
+
 
 motion_data = joblib.load(motion_file)
 
@@ -302,92 +227,50 @@ env_ids = torch.arange(num_envs).int().to(args.sim_device)
 motion_len = motion_lib.get_motion_length(motion_id).item()
 
 
-motion_time = time_step % motion_len
-# motion_time = 0
-
-motion_res = motion_lib.get_motion_state(torch.tensor([motion_id]).to(args.compute_device_id), torch.tensor([motion_time]).to(args.compute_device_id))
-
-root_pos, root_rot, dof_pos, root_vel, root_ang_vel, dof_vel, smpl_params, limb_weights, pose_aa, rb_pos, rb_rot, body_vel, body_ang_vel = \
-            motion_res["root_pos"], motion_res["root_rot"], motion_res["dof_pos"], motion_res["root_vel"], motion_res["root_ang_vel"], motion_res["dof_vel"], \
-            motion_res["motion_bodies"], motion_res["motion_limb_weights"], motion_res["motion_aa"], motion_res["rg_pos"], motion_res["rb_rot"], motion_res["body_vel"], motion_res["body_ang_vel"]
-
-
-root_states = torch.cat([root_pos, root_rot, root_vel, root_ang_vel], dim=-1).repeat(num_envs, 1)
-
-dof_state = torch.stack([dof_pos, torch.zeros_like(dof_pos)], dim=-1).squeeze().repeat(num_envs, 1)
-
-
-# ------- load motion action results -------
-data  = joblib.load(phc_result)
-actions = data['env_action'][0]   # (N, 69)
-
-actions = torch.tensor(actions, dtype=torch.float32).to(device)
-
-# print(actions.shape)
-
-t_idx = 0
-tota_steps = actions.shape[0]
-
-# Pre-allocate a device tensor for per-step targets
-pd_target = torch.empty_like(actions[0])  # shape (A,)
-
 # print(pd_target.shape)
 
 while not gym.query_viewer_has_closed(viewer):
 
-    if t_idx == 0:
-        gym.set_actor_root_state_tensor_indexed(sim, gymtorch.unwrap_tensor(root_states), gymtorch.unwrap_tensor(env_ids), len(env_ids))
-        gym.set_dof_state_tensor_indexed(sim, gymtorch.unwrap_tensor(dof_state), gymtorch.unwrap_tensor(env_ids), len(env_ids))
-        gym.set_dof_position_target_tensor_indexed(sim, gymtorch.unwrap_tensor(dof_pos.contiguous()), gymtorch.unwrap_tensor(env_ids), len(env_ids)) 
+    motion_time = time_step % motion_len
 
-        gym.simulate(sim)
-        gym.fetch_results(sim, True)
+    motion_res = motion_lib.get_motion_state(torch.tensor([motion_id]).to(args.compute_device_id), torch.tensor([motion_time]).to(args.compute_device_id))
 
-        gym.refresh_actor_root_state_tensor(sim)
-        gym.refresh_rigid_body_state_tensor(sim)
-        gym.refresh_dof_state_tensor(sim)
+    root_pos, root_rot, dof_pos, root_vel, root_ang_vel, dof_vel, smpl_params, limb_weights, pose_aa, rb_pos, rb_rot, body_vel, body_ang_vel = \
+                motion_res["root_pos"], motion_res["root_rot"], motion_res["dof_pos"], motion_res["root_vel"], motion_res["root_ang_vel"], motion_res["dof_vel"], \
+                motion_res["motion_bodies"], motion_res["motion_limb_weights"], motion_res["motion_aa"], motion_res["rg_pos"], motion_res["rb_rot"], motion_res["body_vel"], motion_res["body_ang_vel"]
 
-    # step the physics
 
-    # gym.simulate(sim)
+    root_states = torch.cat([root_pos, root_rot, root_vel, root_ang_vel], dim=-1).repeat(num_envs, 1)
 
-    pd_tar = action_to_pd_target(actions[t_idx % tota_steps], device=device)
+    dof_state = torch.stack([dof_pos, torch.zeros_like(dof_pos)], dim=-1).squeeze().repeat(num_envs, 1)
 
-    pd_target[:] = pd_tar
 
-    # If actions already match DOF ordering and count:
-    # (If you needed expansion from a reduced action set, use the expanded vector instead.)
-    pd_tar_tensor = gymtorch.unwrap_tensor(pd_target)
+    gym.set_actor_root_state_tensor_indexed(sim, gymtorch.unwrap_tensor(root_states), gymtorch.unwrap_tensor(env_ids), len(env_ids))
+    gym.set_dof_state_tensor_indexed(sim, gymtorch.unwrap_tensor(dof_state), gymtorch.unwrap_tensor(env_ids), len(env_ids))
 
-     # set PD position targets (this produces torques via Kp, Kd)
-    gym.set_dof_position_target_tensor(sim, pd_tar_tensor)  # Isaac PD path.
-    
     gym.simulate(sim)
-    
     gym.fetch_results(sim, True)
+
+    gym.refresh_actor_root_state_tensor(sim)
+    gym.refresh_rigid_body_state_tensor(sim)
 
     # update the viewer
     gym.step_graphics(sim)
     gym.draw_viewer(viewer, sim, True)
 
+    gym.refresh_dof_state_tensor(sim)
+    gym.refresh_actor_root_state_tensor(sim)
+    gym.refresh_rigid_body_state_tensor(sim)
 
-    # gym.refresh_dof_state_tensor(sim)
-    # gym.refresh_actor_root_state_tensor(sim)
-    # gym.refresh_rigid_body_state_tensor(sim)
-
-    # gym.refresh_force_sensor_tensor(sim)
-    # gym.refresh_dof_force_tensor(sim)
-    # gym.refresh_net_contact_force_tensor(sim)
+    gym.refresh_force_sensor_tensor(sim)
+    gym.refresh_dof_force_tensor(sim)
+    gym.refresh_net_contact_force_tensor(sim)
 
     # Wait for dt to elapse in real time.
     # This synchronizes the physics simulation with the rendering rate.
     gym.sync_frame_time(sim)
     
-    # time_step += dt
-    t_idx += 1
-
-    if t_idx >= tota_steps:
-        t_idx = 0
+    time_step += sim_params.dt
 
 
 print("Done")
