@@ -72,7 +72,8 @@ args = None
 cfg = None
 cfg_train = None
 
-IS_LOCAL = True
+# IS_LOCAL = True
+IS_LOCAL = False
 
 def parse_sim_params(cfg):
     # initialize sim

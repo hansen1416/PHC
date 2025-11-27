@@ -107,9 +107,11 @@ file_path = "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3
 file_path = "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses/noise_False_0.05_2025-10-02-22:39:21.pkl"
 # file_path = "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses/noise_False_0.05_2025-10-02-22:49:43.pkl"
 
+file_path = "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses/noise_False_0.05_2025-11-27-17:23:28.pkl"
+
 res = read_phc_result(file_path)
 
-# print(res.keys())
+print(res.keys())
 
 # for k,v in res.items():
 #     # display the type and shape if applicable

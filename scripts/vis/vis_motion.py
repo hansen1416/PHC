@@ -12,7 +12,7 @@ Visualize motion library
 
 Module: vis_motion.py
 Description: Visualizes SMPL-based human motions using Isaac Gym. 
-oads an SMPL robot model, simulates physics,
+loads an SMPL robot model, simulates physics,
 and animates motions from a library. Supports keyboard controls for motion switching and debugging.
 Dependencies: isaacgym, torch, numpy, joblib, etc.
 Usage: Run directly to start the simulation viewer.
@@ -96,11 +96,15 @@ args = gymutil.parse_arguments(description="Joint monkey: Animate degree-of-free
                                }])
 
 
-# motion_file = "data/amass/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl"
-# motion_file = "data/amass/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl"
+# motion_file = "/home/hlz/datasets/AMASS/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl"
+# motion_file = "/home/hlz/datasets/AMASS/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl"
 
 results_pair = [
-    {"motion_file": "data/amass/pkls/0-ACCAD_Male2General_c3d_A11-Crawl_poses.pkl",
+    {
+        "motion_file": "/home/hlz/datasets/AMASS/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl",
+        "phc_result": "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses/noise_False_0.05_2025-11-27-20:34:03.pkl"
+    },
+    {"motion_file": "/home/hlz/datasets/AMASS/pkls/0-ACCAD_Male2General_c3d_A11-Crawl_poses.pkl",
      "phc_result": os.path.join("/",
         "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
         "phc_kp_mcp_iccv", "phc_act", "0-ACCAD_Male2General_c3d_A11-Crawl_poses",
@@ -110,17 +114,17 @@ results_pair = [
             "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
             "phc_kp_mcp_iccv", "phc_act", "amass_isaac_standing_upright_slim",
             "noise_False_0.05_2025-09-29-16:02:08.pkl")},
-    {"motion_file": "data/amass/pkls/0-ACCAD_MartialArtsWalksTurns_c3d_E15-blockleftmiddle_poses.pkl",
+    {"motion_file": "/home/hlz/datasets/AMASS/pkls/0-ACCAD_MartialArtsWalksTurns_c3d_E15-blockleftmiddle_poses.pkl",
         "phc_result": os.path.join("/",
             "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
             "phc_kp_mcp_iccv", "phc_act", "0-ACCAD_MartialArtsWalksTurns_c3d_E15-blockleftmiddle_poses",
             "noise_False_0.05_2025-09-29-16:18:10.pkl")},
     {
-    "motion_file": "data/amass/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl",
+    "motion_file": "/home/hlz/datasets/AMASS/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl",
     "phc_result": "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses/noise_False_0.05_2025-09-29-21:27:25.pkl"
     },
     {
-    "motion_file": "data/amass/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl",
+    "motion_file": "/home/hlz/datasets/AMASS/pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl",
     "phc_result": "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1General_c3d_A3-Swing_poses/noise_False_0.05_2025-09-29-21:35:12.pkl"
     },
 ]
