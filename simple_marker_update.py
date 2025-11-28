@@ -50,28 +50,16 @@ def build_marker(gym: gymapi.Gym, sim: gymapi.Sim, env_ptr):
    
         _marker_handles.append(marker_handle)
 
-    return [_marker_handles]
+    return _marker_handles
 
 
-def collect_marker_actor_ids(
-    gym: gymapi.Gym,
-    envs: Sequence[gymapi.Env],
-    marker_handles: Iterable[int],
-    device: torch.device | str = "cuda",
-) -> torch.Tensor:
-    """Return a tensor of actor IDs for the provided marker handles.
-
-    Isaac Gym addresses actor root states by a flat actor index. This helper
-    converts per-environment actor handles into those global indices so they can
-    be used with ``set_actor_root_state_tensor_indexed``.
-    """
-
-    marker_actor_ids = []
-    for env, handle in zip(envs, marker_handles):
-        actor_id = gym.get_actor_index(env, handle, gymapi.DOMAIN_SIM)
-        marker_actor_ids.append(actor_id)
-
-    return torch.tensor(marker_actor_ids, dtype=torch.int32, device=device)
+def build_marker_actor_ids(marker_handles, num_envs, num_actors, device):
+    # env offsets: [num_envs, 1] where each entry is env_id * num_actors
+    env_offsets = (torch.arange(num_envs, device=device, dtype=torch.int32) * num_actors).unsqueeze(-1)
+    # local handles -> tensor: [num_envs, num_markers]
+    marker_handles_t = torch.tensor(marker_handles, dtype=torch.int32, device=device, requires_grad=False)
+    # broadcast add and flatten to 1D global actor ids
+    return (env_offsets + marker_handles_t).flatten()
 
 
 def set_marker_positions(
@@ -79,6 +67,7 @@ def set_marker_positions(
     sim: gymapi.Sim,
     marker_actor_ids: torch.Tensor,
     ref_rb_pos: torch.Tensor,
+    device
 ) -> None:
     """Write reference positions into the marker root states.
 
@@ -95,21 +84,40 @@ def set_marker_positions(
     root_state_tensor = gym.acquire_actor_root_state_tensor(sim)
     root_states = gymtorch.wrap_tensor(root_state_tensor)
 
+    # print(f"Root States Shape: {root_states.shape}, Device: {root_states.device}")
+    # print(f"Ref Pos Shape: {ref_rb_pos.shape}, Device: {ref_rb_pos.device}")
+
+    # ref_rb_pos = ref_rb_pos.to(root_states.device).contiguous()
+
+    # print(root_states)
+    # print(root_states.shape)
+    # print(root_states[:, 0:3].shape)
+
+    # print(ref_rb_pos)
+    # print(ref_rb_pos.shape)
+
+    # exit()
+
     # Slice out just the marker rows and update positions; zero the rest for a
     # clean teleport. Root-state layout is [pos(3), quat(4), lin_vel(3), ang_vel(3)].
-    marker_states = root_states[marker_actor_ids]
-    marker_states[:, 0:3] = ref_rb_pos
-    marker_states[:, 3:7] = torch.tensor([0.0, 0.0, 0.0, 1.0], device=ref_rb_pos.device)
-    marker_states[:, 7:10] = 0.0
-    marker_states[:, 10:13] = 0.0
+    # marker_states = root_states[marker_actor_ids]
+    # marker_states[:, 0:3] = ref_rb_pos
+    # marker_states[:, 3:7] = torch.tensor([0.0, 0.0, 0.0, 1.0], device=device)
+    # marker_states[:, 7:10] = 0.0
+    # marker_states[:, 10:13] = 0.0
 
-    # Push the updated rows back to the simulator.
-    gym.set_actor_root_state_tensor_indexed(
-        sim,
-        root_state_tensor,
-        marker_actor_ids,
-        marker_actor_ids.numel(),
-    )
+    root_states[:, 0:3] = ref_rb_pos
+
+    # print(marker_actor_ids)
+    # exit()
+
+    # # Push the updated rows back to the simulator.
+    # gym.set_actor_root_state_tensor_indexed(
+    #     sim,
+    #     root_state_tensor,
+    #     gymtorch.unwrap_tensor(marker_actor_ids),
+    #     len(marker_actor_ids),
+    # )
 
 
 

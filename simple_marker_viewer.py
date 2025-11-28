@@ -9,11 +9,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Tuple
 
-from isaacgym import gymapi
+from isaacgym import gymapi, gymtorch
 import torch
 
-from simple_marker_update import build_marker, collect_marker_actor_ids, set_marker_positions
+from simple_marker_update import build_marker, build_marker_actor_ids
 from simple_motion_loader import load_first_frame_rb_positions
+
+device = (torch.device("cuda", index=0) if torch.cuda.is_available() else torch.device("cpu"))
 
 
 def create_sim(gym: gymapi.Gym) -> gymapi.Sim:
@@ -60,18 +62,34 @@ def create_env_and_markers(
 ) -> Tuple[gymapi.Env, list[int]]:
     """Spawn a single env with ``num_markers`` marker actors."""
 
-    env = gym.create_env(sim, gymapi.Vec3(-2.0, -2.0, 0.0), gymapi.Vec3(2.0, 2.0, 2.0), 1)
+    num_envs = 1
+    num_actors = 1
+    num_per_row = 5
+    spacing = 5
+    env_lower = gymapi.Vec3(-spacing, spacing, 0)
+    env_upper = gymapi.Vec3(spacing, spacing, spacing)
+
+    env = gym.create_env(sim,  env_lower, env_upper, num_per_row)
 
     marker_handles: list[int] = build_marker(gym, sim, env)
-    
-    return env, marker_handles
 
+    marker_actor_ids = build_marker_actor_ids(marker_handles, num_envs, num_actors, device)
+
+    return env, marker_actor_ids
 
 
 def set_camera_pose(gym: gymapi.Gym, viewer: gymapi.Viewer) -> None:
     cam_pos = gymapi.Vec3(0, -10.0, 3)
     cam_target = gymapi.Vec3(0, 0, 0)
     gym.viewer_camera_look_at(viewer, None, cam_pos, cam_target)
+
+
+def random_tensor_4x3_1_2(device=None, dtype=torch.float32):
+    """
+    Generate a random tensor of shape (4, 3) with values in [1, 2).
+    """
+    t = torch.rand(24, 3, device=device, dtype=dtype)  # in [0, 1)
+    return 1.0 + t  # shift to [1, 2)
 
 
 def main(motion_file: str) -> None:
@@ -82,48 +100,44 @@ def main(motion_file: str) -> None:
         raise RuntimeError("Failed to create gym viewer")
     set_camera_pose(gym, viewer)
 
-    ref_rb_pos, motion_lib = load_first_frame_rb_positions(motion_file)
-    device = ref_rb_pos.device
+    # ref_rb_pos, motion_lib = load_first_frame_rb_positions(motion_file)
 
-    num_markers = ref_rb_pos.shape[1]
-    env, marker_handles = create_env_and_markers(gym, sim, num_markers)
-    # marker_actor_ids = collect_marker_actor_ids(
-    #     gym, [env] * num_markers, [marker_handles], device=device
-    # )
+    # print(ref_rb_pos)
+    # exit()
 
-    # motion_ids = torch.tensor([0], device=device, dtype=torch.long)
-    # motion_len = motion_lib.get_motion_length(motion_ids)[0].item()
-    # motion_dt = motion_lib._motion_dt[motion_ids][0].item()
-    # motion_time = 0.0
+    num_markers = 24
+    env, marker_actor_ids = create_env_and_markers(gym, sim, num_markers)
+
+    root_state_tensor = gym.acquire_actor_root_state_tensor(sim)
+    root_states = gymtorch.wrap_tensor(root_state_tensor)
+
+    ref_rb_pos = random_tensor_4x3_1_2(device)
+
+    flag = 0
 
     while not gym.query_viewer_has_closed(viewer):
-        
-        print(ref_rb_pos)
-        print(ref_rb_pos.shape)
-        print("==================================")
-        
-        # motion_state = motion_lib.get_motion_state(
-        #     motion_ids, torch.tensor([motion_time])
-        # )
-        # ref_positions = motion_state["rg_pos"][0]
-        # set_marker_positions(gym, sim, marker_actor_ids, ref_positions)
 
+        # root_states[:, 0] = root_states[:, 0]  # no-op write
 
+        if flag == 0:
+
+            root_states[:, 0:3].copy_(ref_rb_pos[0])
+
+            gym.set_actor_root_state_tensor_indexed(
+                sim,
+                root_state_tensor,
+                gymtorch.unwrap_tensor(marker_actor_ids),
+                len(marker_actor_ids),
+            )
+
+            flag += 1
+        
         gym.simulate(sim)
         gym.fetch_results(sim, True)
         gym.step_graphics(sim)
         gym.draw_viewer(viewer, sim, True)
         gym.sync_frame_time(sim)
 
-        # gym.simulate(sim)
-        # gym.fetch_results(sim, True)
-        # # update the viewer
-        # gym.step_graphics(sim)
-        # gym.draw_viewer(viewer, sim, True)
-
-        # motion_time += motion_dt
-        # if motion_time > motion_len:
-        #     motion_time = 0.0
 
     gym.destroy_viewer(viewer)
     gym.destroy_sim(sim)
