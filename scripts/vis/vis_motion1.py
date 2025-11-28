@@ -12,7 +12,7 @@ Visualize motion library
 
 Module: vis_motion.py
 Description: Visualizes SMPL-based human motions using Isaac Gym. 
-oads an SMPL robot model, simulates physics,
+loads an SMPL robot model, simulates physics,
 and animates motions from a library. Supports keyboard controls for motion switching and debugging.
 Dependencies: isaacgym, torch, numpy, joblib, etc.
 Usage: Run directly to start the simulation viewer.
@@ -100,6 +100,10 @@ args = gymutil.parse_arguments(description="Joint monkey: Animate degree-of-free
 # motion_file = "/home/hlz/datasets/AMASS/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl"
 
 results_pair = [
+    {
+        "motion_file": "/home/hlz/datasets/AMASS/pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl",
+        "phc_result": "output/HumanoidIm/phc_kp_mcp_iccv/phc_act/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses/noise_False_0.05_2025-11-27-20:34:03.pkl"
+    },
     {"motion_file": "/home/hlz/datasets/AMASS/pkls/0-ACCAD_Male2General_c3d_A11-Crawl_poses.pkl",
      "phc_result": os.path.join("/",
         "home", "hlz", "repos", "PHC", "output", "HumanoidIm",
@@ -142,7 +146,16 @@ sim_params.gravity = gymapi.Vec3(0.0, 0.0, -9.81)
 
 sim_params.physx.solver_type = 1
 sim_params.physx.num_position_iterations = 6
-sim_params.physx.num_velocity_iterations = 0
+
+# sim_params.physx.num_velocity_iterations = 0
+# Use velocity iterations to avoid unstable contact resolution that can
+# throw the humanoid into the air during visualization.
+sim_params.physx.num_velocity_iterations = 1
+# Provide small offsets to keep contacts well-behaved and reduce the
+# likelihood of the character being launched from the ground.
+sim_params.physx.contact_offset = 0.02
+sim_params.physx.rest_offset = 0.0
+
 sim_params.physx.num_threads = args.num_threads
 sim_params.physx.use_gpu = args.use_gpu
 sim_params.use_gpu_pipeline = args.use_gpu_pipeline
@@ -203,7 +216,7 @@ def _create_smpl_humanoid_xml(num_humanoids, smpl_robot, queue, pid):
 gender_beta, asset_file_real = _create_smpl_humanoid_xml([0], robot, None, 0)[0]
 sk_tree = SkeletonTree.from_mjcf(asset_file_real)
 
-sk_tree = SkeletonTree.from_mjcf(osp.join(asset_root, asset_file))
+# sk_tree = SkeletonTree.from_mjcf(osp.join(asset_root, asset_file))
 
 asset_options = gymapi.AssetOptions()
 asset_options.angular_damping = 0.01
@@ -224,6 +237,7 @@ env_upper = gymapi.Vec3(spacing, spacing, spacing)
 cam_pos = gymapi.Vec3(0, -5.0, 3)
 cam_target = gymapi.Vec3(0, 0, 0)
 gym.viewer_camera_look_at(viewer, None, cam_pos, cam_target)
+
 
 # cache useful handles
 envs = []
@@ -311,6 +325,17 @@ root_pos, root_rot, dof_pos, root_vel, root_ang_vel, dof_vel, smpl_params, limb_
             motion_res["root_pos"], motion_res["root_rot"], motion_res["dof_pos"], motion_res["root_vel"], motion_res["root_ang_vel"], motion_res["dof_vel"], \
             motion_res["motion_bodies"], motion_res["motion_limb_weights"], motion_res["motion_aa"], motion_res["rg_pos"], motion_res["rb_rot"], motion_res["body_vel"], motion_res["body_ang_vel"]
 
+"""
+tensor([[-0.1150, -0.1948,  0.8777]], device='cuda:0')
+tensor([[ 0.0463, -0.0348,  0.9575,  0.2826]], device='cuda:0')
+tensor([[ 0.0141, -0.0081,  0.0300]], device='cuda:0')
+tensor([[ 0.0150, -0.1620,  0.0265]], device='cuda:0')
+"""
+
+print(root_pos)
+print(root_rot)
+print(root_vel)
+print(root_ang_vel)
 
 root_states = torch.cat([root_pos, root_rot, root_vel, root_ang_vel], dim=-1).repeat(num_envs, 1)
 
