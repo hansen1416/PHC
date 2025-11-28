@@ -12,7 +12,7 @@ from typing import Tuple
 from isaacgym import gymapi
 import torch
 
-from simple_marker_update import collect_marker_actor_ids, set_marker_positions
+from simple_marker_update import build_marker, collect_marker_actor_ids, set_marker_positions
 from simple_motion_loader import load_first_frame_rb_positions
 
 
@@ -53,7 +53,9 @@ def create_env_and_markers(
 
     env = gym.create_env(sim, gymapi.Vec3(-2.0, -2.0, 0.0), gymapi.Vec3(2.0, 2.0, 2.0), 1)
 
-    asset_root = Path(__file__).resolve().parent / "data" / "assets" / "urdf"
+    # asset_root = Path(__file__).resolve().parent / "data" / "assets" / "urdf"
+    asset_root = "/home/hlz/repos/PHC/phc/data/assets/urdf/"
+
     asset_options = gymapi.AssetOptions()
     asset_options.disable_gravity = True
     marker_asset = gym.load_asset(sim, str(asset_root), "traj_marker.urdf", asset_options)
@@ -65,7 +67,10 @@ def create_env_and_markers(
         gym.set_rigid_body_color(env, marker, 0, gymapi.MESH_VISUAL, gymapi.Vec3(0.8, 0.0, 0.0))
         marker_handles.append(marker)
 
+    # marker_handles: list[int] = build_marker(gym, sim, env)
+    
     return env, marker_handles
+
 
 
 def set_camera_pose(gym: gymapi.Gym, viewer: gymapi.Viewer) -> None:
@@ -88,7 +93,7 @@ def main(motion_file: str) -> None:
     num_markers = ref_rb_pos.shape[1]
     env, marker_handles = create_env_and_markers(gym, sim, num_markers)
     marker_actor_ids = collect_marker_actor_ids(
-        gym, [env] * num_markers, marker_handles, device=device
+        gym, [env] * num_markers, [marker_handles], device=device
     )
 
     motion_ids = torch.tensor([0], device=device, dtype=torch.long)

@@ -7,12 +7,14 @@ pickle by driving ``MotionLibSMPL`` directly.
 from __future__ import annotations
 
 from typing import Tuple
+from uuid import uuid4
 
 import joblib
 import numpy as np
 import torch
 from easydict import EasyDict
 from poselib.poselib.skeleton.skeleton3d import SkeletonTree
+from smpl_sim.smpllib.smpl_local_robot import SMPL_Robot
 
 from phc.utils.motion_lib_base import FixHeightMode
 from phc.utils.motion_lib_smpl import MotionLibSMPL
@@ -38,6 +40,31 @@ def _build_motion_lib_cfg(motion_file: str, device: torch.device) -> EasyDict:
         randomrize_heading=False,
         step_dt=1 / 30.0,
     )
+
+def get_sk_tree():
+
+    robot_cfg = {'mesh': False, 'replace_feet': True, 'rel_joint_lm': False, 'upright_start': True, 
+             'remove_toe': False, 'freeze_hand': True, 'real_weight_porpotion_capsules': True, 
+             'real_weight_porpotion_boxes': True, 'real_weight': True, 'masterfoot': False, 
+             'master_range': 30, 'big_ankle': True, 'box_body': False, 'body_params': {}, 
+             'joint_params': {}, 'geom_params': {}, 'actuator_params': {}, 'model': 'smpl', 'sim': 'isaacgym'}
+
+    smpl_robot = SMPL_Robot(
+        robot_cfg,
+        data_dir="data/smpl",
+    )
+
+
+    gender_beta = np.zeros(17)
+    asset_id = uuid4()
+    
+    asset_file_real = f"/tmp/smpl/smpl_humanoid_{asset_id}.xml"
+    smpl_robot.load_from_skeleton(betas=torch.from_numpy(gender_beta[None, 1:]), gender=gender_beta[0:1], objs_info=None)
+    smpl_robot.write_xml(asset_file_real)
+
+    sk_tree = SkeletonTree.from_mjcf(asset_file_real)
+
+    return sk_tree
 
 
 def load_first_frame_rb_positions(
@@ -66,10 +93,12 @@ def load_first_frame_rb_positions(
     first_key = next(iter(motion_data))
     motion_entry = motion_data[first_key]
 
-    skeleton_dict = motion_entry.get("skeleton_tree")
-    if skeleton_dict is None:
-        raise ValueError("motion file is missing a serialized skeleton_tree")
-    skeleton_tree = SkeletonTree.from_dict(skeleton_dict)
+    # skeleton_dict = motion_entry.get("skeleton_tree")
+    # if skeleton_dict is None:
+    #     raise ValueError("motion file is missing a serialized skeleton_tree")
+    # skeleton_tree = SkeletonTree.from_dict(skeleton_dict)
+
+    skeleton_tree = get_sk_tree()
 
     gender_beta = motion_entry.get("gender_beta", np.zeros(17, dtype=np.float32))
     gender_beta = torch.as_tensor(gender_beta, dtype=torch.float32)

@@ -16,7 +16,7 @@ def load_marker_asset(gym: gymapi.Gym, sim: gymapi.Sim):
     """
     load red ball marker and stores them for later instantiation
     """
-    asset_root = "phc/data/assets/urdf/"
+    asset_root = "/home/hlz/repos/PHC/phc/data/assets/urdf/"
 
     asset_options = gymapi.AssetOptions()
     asset_options.angular_damping = 0.0
@@ -32,9 +32,11 @@ def load_marker_asset(gym: gymapi.Gym, sim: gymapi.Sim):
 
     return marker_asset, marker_asset_small
 
-def build_marker(gym: gymapi.Gym, env_id, env_ptr, num_envs, marker_asset):
+def build_marker(gym: gymapi.Gym, sim: gymapi.Sim, env_ptr):
 
-    _marker_handles = [[] for _ in range(num_envs)]
+    marker_asset, _ = load_marker_asset(gym, sim)
+
+    _marker_handles = []
 
     _num_joints = 24
 
@@ -42,14 +44,13 @@ def build_marker(gym: gymapi.Gym, env_id, env_ptr, num_envs, marker_asset):
     for i in range(_num_joints):
         # Giving hands smaller balls to indicate positions
 
-        marker_handle = gym.create_actor(env_ptr, marker_asset, default_pose, "marker", num_envs + 10, 1, 0)
+        marker_handle = gym.create_actor(env_ptr, marker_asset, default_pose, f"marker_{i}", i, 1, 0)
         
-
         gym.set_rigid_body_color(env_ptr, marker_handle, 0, gymapi.MESH_VISUAL, gymapi.Vec3(0.8, 0.0, 0.0))
    
-        _marker_handles[env_id].append(marker_handle)
+        _marker_handles.append(marker_handle)
 
-    return _marker_handles
+    return [_marker_handles]
 
 
 def collect_marker_actor_ids(
