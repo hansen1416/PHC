@@ -203,7 +203,7 @@ def _create_smpl_humanoid_xml(num_humanoids, smpl_robot, queue, pid):
 gender_beta, asset_file_real = _create_smpl_humanoid_xml([0], robot, None, 0)[0]
 sk_tree = SkeletonTree.from_mjcf(asset_file_real)
 
-sk_tree = SkeletonTree.from_mjcf(osp.join(asset_root, asset_file))
+# sk_tree = SkeletonTree.from_mjcf(osp.join(asset_root, asset_file))
 
 asset_options = gymapi.AssetOptions()
 asset_options.angular_damping = 0.01
