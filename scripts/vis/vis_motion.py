@@ -271,7 +271,7 @@ device = (torch.device("cuda", index=0) if torch.cuda.is_available() else torch.
 motion_lib_cfg = EasyDict({
                 "motion_file": motion_file,
                 "device": torch.device("cpu"),
-                "fix_height": FixHeightMode.no_fix,
+                "fix_height": FixHeightMode.full_fix,
                 "min_length": -1,
                 "max_length": -1,
                 "im_eval": False,
