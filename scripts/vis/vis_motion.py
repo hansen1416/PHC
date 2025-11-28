@@ -311,6 +311,16 @@ root_pos, root_rot, dof_pos, root_vel, root_ang_vel, dof_vel, smpl_params, limb_
             motion_res["root_pos"], motion_res["root_rot"], motion_res["dof_pos"], motion_res["root_vel"], motion_res["root_ang_vel"], motion_res["dof_vel"], \
             motion_res["motion_bodies"], motion_res["motion_limb_weights"], motion_res["motion_aa"], motion_res["rg_pos"], motion_res["rb_rot"], motion_res["body_vel"], motion_res["body_ang_vel"]
 
+# Match the training/test reset logic that nudges characters slightly above the
+# ground to avoid immediate contact resolution when they spawn. See
+# `HumanoidIm._hack_motion_sync` in `phc/env/tasks/humanoid_im.py`.
+root_pos[..., -1] += 0.03
+
+# # Align rigid-body states with the reference pose just like `_set_env_state`
+# # does during training/eval. Otherwise bodies can spawn intersecting the
+# # ground/each other even if the root is lifted.
+# rb_state = torch.cat([rb_pos, rb_rot, body_vel, body_ang_vel], dim=-1).squeeze(0)
+# rigidbody_state[:] = rb_state.unsqueeze(0).repeat(num_envs, 1, 1)
 
 root_states = torch.cat([root_pos, root_rot, root_vel, root_ang_vel], dim=-1).repeat(num_envs, 1)
 
