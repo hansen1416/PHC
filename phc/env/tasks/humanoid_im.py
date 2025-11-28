@@ -567,6 +567,9 @@ class HumanoidIm(humanoid_amp_task.HumanoidAMPTask):
         return
 
     def _load_marker_asset(self):
+        """
+        load red ball marker and stores them for later instantiation
+        """
         asset_root = "phc/data/assets/urdf/"
 
         asset_options = gymapi.AssetOptions()
@@ -639,6 +642,7 @@ class HumanoidIm(humanoid_amp_task.HumanoidAMPTask):
             else:
                 marker_handle = self.gym.create_actor(env_ptr, self._marker_asset, default_pose, "marker", self.num_envs + 10, 1, 0)
             
+            # self._track_bodies_id is [0,1,...23]
             if i in self._track_bodies_id:
                 self.gym.set_rigid_body_color(env_ptr, marker_handle, 0, gymapi.MESH_VISUAL, gymapi.Vec3(0.8, 0.0, 0.0))
             else:

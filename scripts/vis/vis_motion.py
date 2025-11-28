@@ -238,6 +238,7 @@ cam_pos = gymapi.Vec3(0, -5.0, 3)
 cam_target = gymapi.Vec3(0, 0, 0)
 gym.viewer_camera_look_at(viewer, None, cam_pos, cam_target)
 
+
 # cache useful handles
 envs = []
 actor_handles = []
@@ -324,6 +325,17 @@ root_pos, root_rot, dof_pos, root_vel, root_ang_vel, dof_vel, smpl_params, limb_
             motion_res["root_pos"], motion_res["root_rot"], motion_res["dof_pos"], motion_res["root_vel"], motion_res["root_ang_vel"], motion_res["dof_vel"], \
             motion_res["motion_bodies"], motion_res["motion_limb_weights"], motion_res["motion_aa"], motion_res["rg_pos"], motion_res["rb_rot"], motion_res["body_vel"], motion_res["body_ang_vel"]
 
+"""
+tensor([[-0.1150, -0.1948,  0.8777]], device='cuda:0')
+tensor([[ 0.0463, -0.0348,  0.9575,  0.2826]], device='cuda:0')
+tensor([[ 0.0141, -0.0081,  0.0300]], device='cuda:0')
+tensor([[ 0.0150, -0.1620,  0.0265]], device='cuda:0')
+"""
+
+print(root_pos)
+print(root_rot)
+print(root_vel)
+print(root_ang_vel)
 
 root_states = torch.cat([root_pos, root_rot, root_vel, root_ang_vel], dim=-1).repeat(num_envs, 1)
 

@@ -616,6 +616,12 @@ class HumanoidAMP(Humanoid):
         rigid_body_vel=None,
         rigid_body_ang_vel=None,
     ):
+        
+        print(root_pos)
+        print(root_rot)
+        print(root_vel)
+        print(root_ang_vel)
+
         self._humanoid_root_states[env_ids, 0:3] = root_pos
         self._humanoid_root_states[env_ids, 3:7] = root_rot
         self._humanoid_root_states[env_ids, 7:10] = root_vel
