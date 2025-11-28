@@ -53,21 +53,7 @@ def create_env_and_markers(
 
     env = gym.create_env(sim, gymapi.Vec3(-2.0, -2.0, 0.0), gymapi.Vec3(2.0, 2.0, 2.0), 1)
 
-    # asset_root = Path(__file__).resolve().parent / "data" / "assets" / "urdf"
-    asset_root = "/home/hlz/repos/PHC/phc/data/assets/urdf/"
-
-    asset_options = gymapi.AssetOptions()
-    asset_options.disable_gravity = True
-    marker_asset = gym.load_asset(sim, str(asset_root), "traj_marker.urdf", asset_options)
-
-    marker_handles: list[int] = []
-    default_pose = gymapi.Transform()
-    for idx in range(num_markers):
-        marker = gym.create_actor(env, marker_asset, default_pose, f"marker_{idx}", idx, 0)
-        gym.set_rigid_body_color(env, marker, 0, gymapi.MESH_VISUAL, gymapi.Vec3(0.8, 0.0, 0.0))
-        marker_handles.append(marker)
-
-    # marker_handles: list[int] = build_marker(gym, sim, env)
+    marker_handles: list[int] = build_marker(gym, sim, env)
     
     return env, marker_handles
 
