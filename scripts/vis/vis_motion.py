@@ -146,7 +146,16 @@ sim_params.gravity = gymapi.Vec3(0.0, 0.0, -9.81)
 
 sim_params.physx.solver_type = 1
 sim_params.physx.num_position_iterations = 6
-sim_params.physx.num_velocity_iterations = 0
+
+# sim_params.physx.num_velocity_iterations = 0
+# Use velocity iterations to avoid unstable contact resolution that can
+# throw the humanoid into the air during visualization.
+sim_params.physx.num_velocity_iterations = 1
+# Provide small offsets to keep contacts well-behaved and reduce the
+# likelihood of the character being launched from the ground.
+sim_params.physx.contact_offset = 0.02
+sim_params.physx.rest_offset = 0.0
+
 sim_params.physx.num_threads = args.num_threads
 sim_params.physx.use_gpu = args.use_gpu
 sim_params.use_gpu_pipeline = args.use_gpu_pipeline
