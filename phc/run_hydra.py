@@ -72,9 +72,6 @@ args = None
 cfg = None
 cfg_train = None
 
-# IS_LOCAL = True
-IS_LOCAL = False
-
 def parse_sim_params(cfg):
     # initialize sim
     sim_params = gymapi.SimParams()
@@ -274,10 +271,10 @@ def main(cfg_hydra: DictConfig) -> None:
     
     cfg = EasyDict(OmegaConf.to_container(cfg_hydra, resolve=True))
 
-    if IS_LOCAL:
+    if True:
         cfg.no_log = True
         cfg.env.num_envs = 1
-        cfg.env.stateInit = 'Default'
+        cfg.env.stateInit = 'Start'
         cfg.learning.params.config.horizon_length = 4
         cfg.learning.params.config.minibatch_size = 4
         cfg.learning.params.config.amp_batch_size = 1
