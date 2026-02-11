@@ -116,7 +116,7 @@ def calc_pose_quat(pose_aa, root_trans, device):
                     root_trans_offset.to(device),
                     is_local=True)
     
-    if True:
+    if True:# this upright_start flag
         pose_quat_global = (sRot.from_quat(new_sk_state.global_rotation.reshape(-1, 4).numpy()) * sRot.from_quat([0.5, 0.5, 0.5, 0.5]).inv()).as_quat().reshape(N, -1, 4)  # should fix pose_quat as well here...
 
         new_sk_state = SkeletonState.from_rotation_and_root_translation(skeleton_tree, torch.from_numpy(pose_quat_global), root_trans_offset, is_local=False)
@@ -131,11 +131,7 @@ def calc_pose_quat(pose_aa, root_trans, device):
 
 
 
-def data_format_humos2phc(humos_path):
-
-    phc_data_folder = os.path.join("/home/hlz/repos/t2hm-visualizer/", "phc_test")
-
-    os.makedirs(phc_data_folder, exist_ok=True)
+def data_format_humos2phc(humos_path, output_dir):
 
     # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     device = "cpu"
@@ -174,7 +170,7 @@ def data_format_humos2phc(humos_path):
             phc_motion["pose_quat_global"] = pose_quat_global
             
 
-            file_path = os.path.join(phc_data_folder, f"{motion_name}_{gender}_{beta_key}.pkl")
+            file_path = os.path.join(output_dir, f"{motion_name}_{gender}_{beta_key}.pkl")
 
             print(f"dumping {file_path}")
 
@@ -196,11 +192,14 @@ if __name__ == "__main__":
     pattern = os.path.join(folder, "**", f"*.pt")
     files = glob(pattern, recursive=True)
 
+
+    output_dir = os.path.join(os.path.expanduser("~"), "datasets", "humos_results")
+
     i = 0
 
     for file in files:
 
-        data_format_humos2phc(file)
+        data_format_humos2phc(file, output_dir)
 
         i += 1
 

@@ -204,9 +204,11 @@ for body_name in key_body_names:
 gym.prepare_sim(sim)
 body_ids = np.array(body_ids)
 
-motion_file = "/home/hlz/repos/t2hm-visualizer/phc_test/a_person_squats_and_rais_male_00c972db.pkl"
-motion_file = "/home/hlz/repos/t2hm-visualizer/phc_test/a_person_walks_forward_o_female_f00a7a9f.pkl"
-motion_file = "/home/hlz/repos/t2hm-visualizer/phc_test/a_person_jumps_sideways_male_5636a12a.pkl"
+motion_file = "/home/hlz/datasets/humos_results/a_person_squats_and_rais_male_00c972db.pkl"
+motion_file = "/home/hlz/datasets/humos_results/a_person_walks_forward_o_female_f00a7a9f.pkl"
+motion_file = "/home/hlz/datasets/humos_results/a_person_jumps_sideways_male_5636a12a.pkl"
+# motion_file = "/home/hlz/datasets/humos_results/a_person_pats,z_the_top_of_female_f00a7a9f.pkl"
+# motion_file = "/home/hlz/datasets/humos_results/a_person_walks_forward_o_neutral_fcc491cd.pkl"
 
 # motion_file = "/home/hlz/datasets/amass-pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl"
 
