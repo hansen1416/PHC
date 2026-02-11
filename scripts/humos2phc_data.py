@@ -148,10 +148,10 @@ def data_format_humos2phc(humos_path, output_dir):
             n_frame = humos_motion_data["trans"].shape[0]
 
             phc_motion = {
-                "gender":gender,
-                "beta": humos_motion_data["betas"][0],
-                'fps': 20
+                
             }
+
+            phc_motion['beta'] = humos_motion_data["betas"][0]
 
             # [n, 3]
             phc_motion["trans_orig"] = humos_motion_data["trans"]
@@ -168,7 +168,13 @@ def data_format_humos2phc(humos_path, output_dir):
             phc_motion['root_trans_offset'] = root_trans_offset
             phc_motion["pose_quat"] = pose_quat
             phc_motion["pose_quat_global"] = pose_quat_global
+
+            for k, v in phc_motion.items():
+                phc_motion[k] = v.to(torch.float32)
             
+
+            phc_motion["gender"] = gender
+            phc_motion['fps'] = 20
 
             file_path = os.path.join(output_dir, f"{motion_name}_{gender}_{beta_key}.pkl")
 
