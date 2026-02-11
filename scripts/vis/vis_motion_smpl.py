@@ -204,10 +204,14 @@ for body_name in key_body_names:
 gym.prepare_sim(sim)
 body_ids = np.array(body_ids)
 
-motion_file = "/home/hlz/datasets/amass-pkls/amass_isaac_im_patch_upright_slim.pkl"
-motion_file = "/home/hlz/datasets/amass-pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl"
-motion_file = "/home/hlz/datasets/amass-pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl"
-motion_file = "/home/hlz/datasets/amass-pkls/0-ACCAD_Male2General_c3d_A11-Crawl_poses.pkl"
+motion_file = "/home/hlz/repos/t2hm-visualizer/phc_test/a_person_squats_and_rais_male_00c972db.pkl"
+motion_file = "/home/hlz/repos/t2hm-visualizer/phc_test/a_person_walks_forward_o_female_f00a7a9f.pkl"
+motion_file = "/home/hlz/repos/t2hm-visualizer/phc_test/a_person_jumps_sideways_male_5636a12a.pkl"
+
+# motion_file = "/home/hlz/datasets/amass-pkls/0-ACCAD_Female1General_c3d_A3-Swing_poses.pkl"
+
+# motion_file = "/home/hlz/datasets/amass-pkls/0-ACCAD_Female1Running_c3d_C4-Runtowalk1_poses.pkl"
+# motion_file = "/home/hlz/datasets/amass-pkls/0-ACCAD_Male2General_c3d_A11-Crawl_poses.pkl"
 # motion_file = "/home/hlz/datasets/amass-pkls/amass_isaac_im_train_upright_slim.pkl"
 # motion_file = "/home/hlz/datasets/amass-pkls/amass_isaac_locomotion_upright.pkl"
 # motion_file = "/home/hlz/datasets/amass-pkls/amass_isaac_slowalk_upright.pkl"

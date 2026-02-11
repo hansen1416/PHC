@@ -1,10 +1,10 @@
 import os
-import math
-import random
+import sys
 import re
 import unicodedata
 from glob import glob
-from typing import List, Dict, Any, Iterable, Optional, Union, Tuple
+
+sys.path.append(os.getcwd())
 
 import joblib
 import numpy as np
@@ -12,25 +12,6 @@ import torch
 from scipy.spatial.transform import Rotation as sRot
 from poselib.poselib.skeleton.skeleton3d import SkeletonTree, SkeletonState
 
-
-def safe_prefix_filename(text: str, n: int = 16) -> str:
-    """
-    Take the first n characters of `text`, replace spaces with underscores,
-    and sanitize to a filesystem-safe ASCII-ish token.
-    """
-    if not isinstance(text, str):
-        text = str(text)
-
-    # take first n chars, replace whitespace runs with single underscore
-    s = text[:n]
-    s = re.sub(r"\s+", "_", s.strip())
-
-    # normalize to ASCII (drop accents), then keep only safe chars
-    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
-    s = re.sub(r"[^A-Za-z0-9._-]", "_", s)  # replace unsafe chars with _
-    s = re.sub(r"_+", "_", s).strip("._-")  # collapse underscores, trim edges
-
-    return s or "untitled"
 
 
 SMPL_MUJOCO_NAMES = [
@@ -89,7 +70,27 @@ SMPL_BONE_ORDER_NAMES = [
 ]
 
 
-def calc_pose_quat(pose_aa):
+def safe_prefix_filename(text: str, n: int = 24) -> str:
+    """
+    Take the first n characters of `text`, replace spaces with underscores,
+    and sanitize to a filesystem-safe ASCII-ish token.
+    """
+    if not isinstance(text, str):
+        text = str(text)
+
+    # take first n chars, replace whitespace runs with single underscore
+    s = text[:n]
+    s = re.sub(r"\s+", "_", s.strip())
+
+    # normalize to ASCII (drop accents), then keep only safe chars
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
+    s = re.sub(r"[^A-Za-z0-9._-]", "_", s)  # replace unsafe chars with _
+    s = re.sub(r"_+", "_", s).strip("._-")  # collapse underscores, trim edges
+
+    return s or "untitled"
+
+
+def calc_pose_quat(pose_aa, root_trans, device):
 
     N = pose_aa.shape[0]
 
@@ -101,13 +102,32 @@ def calc_pose_quat(pose_aa):
     pose_aa_mj = pose_aa.reshape(N, 24, 3)[:, smpl_2_mujoco]
     pose_quat = sRot.from_rotvec(pose_aa_mj.reshape(-1, 3)).as_quat().reshape(N, 24, 4)
 
-    print(pose_quat.shape)
+    # print(pose_quat.shape)
 
     skeleton_tree = SkeletonTree.from_mjcf(
         os.path.join("/home/hlz/repos/ASE/ase/data/assets/mjcf/smpl/0a1ece18_smpl.xml")
     )
 
-    print(skeleton_tree)
+    root_trans_offset = root_trans + skeleton_tree.local_translation[0].to(device)
+
+    new_sk_state = SkeletonState.from_rotation_and_root_translation(
+                    skeleton_tree,  # This is the wrong skeleton tree (location wise) here, but it's fine since we only use the parent relationship here. 
+                    torch.from_numpy(pose_quat).to(device),
+                    root_trans_offset.to(device),
+                    is_local=True)
+    
+    if True:
+        pose_quat_global = (sRot.from_quat(new_sk_state.global_rotation.reshape(-1, 4).numpy()) * sRot.from_quat([0.5, 0.5, 0.5, 0.5]).inv()).as_quat().reshape(N, -1, 4)  # should fix pose_quat as well here...
+
+        new_sk_state = SkeletonState.from_rotation_and_root_translation(skeleton_tree, torch.from_numpy(pose_quat_global), root_trans_offset, is_local=False)
+        pose_quat = new_sk_state.local_rotation.numpy()
+    
+    pose_quat_global = new_sk_state.global_rotation
+    pose_quat = new_sk_state.local_rotation
+
+    # print(pose_quat_global.shape, pose_quat.shape)
+
+    return root_trans_offset, pose_quat, pose_quat_global
 
 
 
@@ -117,7 +137,8 @@ def data_format_humos2phc(humos_path):
 
     os.makedirs(phc_data_folder, exist_ok=True)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = "cpu"
 
     humos_result = torch.load(humos_path, map_location=device)
 
@@ -130,10 +151,11 @@ def data_format_humos2phc(humos_path):
 
             n_frame = humos_motion_data["trans"].shape[0]
 
-            phc_motion = {}
-
-            phc_motion["gender"] = gender
-            phc_motion["beta"] = humos_motion_data["betas"][0]
+            phc_motion = {
+                "gender":gender,
+                "beta": humos_motion_data["betas"][0],
+                'fps': 20
+            }
 
             # [n, 3]
             phc_motion["trans_orig"] = humos_motion_data["trans"]
@@ -145,15 +167,20 @@ def data_format_humos2phc(humos_path):
 
             phc_motion["pose_aa"] = phc_motion["pose_aa"].reshape(n_frame, -1)
 
-            calc_pose_quat(phc_motion["pose_aa"])
+            root_trans_offset, pose_quat, pose_quat_global = calc_pose_quat(phc_motion["pose_aa"], phc_motion["trans_orig"], device)
 
-            file_name = f"{motion_name}_{gender}.pkl"
+            phc_motion['root_trans_offset'] = root_trans_offset
+            phc_motion["pose_quat"] = pose_quat
+            phc_motion["pose_quat_global"] = pose_quat_global
+            
 
-            return
+            file_path = os.path.join(phc_data_folder, f"{motion_name}_{gender}_{beta_key}.pkl")
+
+            print(f"dumping {file_path}")
 
             joblib.dump(
-                {motion_name: phc_motion},
-                os.path.join(phc_data_folder, file_name),
+                {f"{motion_name}_{gender}": phc_motion},
+                file_path
             )
 
 
