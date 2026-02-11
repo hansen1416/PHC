@@ -36,7 +36,7 @@ class HumanoidIm(humanoid_amp_task.HumanoidAMPTask):
 
     def __init__(self, cfg, sim_params, physics_engine, device_type, device_id, headless):
         self._full_body_reward = cfg["env"].get("full_body_reward", True)
-        self._fut_tracks = cfg["env"].get("fut_tracks", False)
+        self._fut_tracks = cfg["env"].get("MotionLibSMPL", False)
         self._fut_tracks_dropout = cfg["env"].get("fut_tracks_dropout", False)
         self.seq_motions = cfg["env"].get("seq_motions", False)
         if self._fut_tracks:
