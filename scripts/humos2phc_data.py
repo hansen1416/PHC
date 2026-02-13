@@ -190,9 +190,7 @@ if __name__ == "__main__":
 
     folder = os.path.join(
         os.path.expanduser("~"),
-        "repos",
-        "humos",
-        "output",
+        "repos/humos/output",
     )
 
     pattern = os.path.join(folder, "**", f"*.pt")
