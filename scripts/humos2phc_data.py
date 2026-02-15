@@ -176,12 +176,13 @@ def data_format_humos2phc(humos_path, output_dir):
             phc_motion["gender"] = gender
             phc_motion['fps'] = 20
 
-            file_path = os.path.join(output_dir, f"{motion_name}_{gender}_{beta_key}.pkl")
+            motion_key = f"{motion_name}_{gender}_{beta_key}"
+            file_path = os.path.join(output_dir, f"{motion_key}.pkl")
 
             print(f"dumping {file_path}")
 
             joblib.dump(
-                {f"{motion_name}_{gender}": phc_motion},
+                {f"{motion_key}": phc_motion},
                 file_path
             )
 
