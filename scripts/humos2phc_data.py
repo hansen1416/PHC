@@ -171,7 +171,7 @@ def data_format_humos2phc(humos_path, output_dir):
             for k, v in phc_motion.items():
                 phc_motion[k] = v.to(torch.float32)
             
-
+            phc_motion['beta_key'] = beta_key
             phc_motion["gender"] = gender
             phc_motion['fps'] = 20
 
