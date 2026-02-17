@@ -3,11 +3,11 @@ import sys
 import re
 import unicodedata
 from glob import glob
+from pathlib import Path
 
 sys.path.append(os.getcwd())
 
 import joblib
-import numpy as np
 import torch
 from scipy.spatial.transform import Rotation as sRot
 from poselib.poselib.skeleton.skeleton3d import SkeletonTree, SkeletonState
@@ -138,10 +138,9 @@ def data_format_humos2phc(humos_path, output_dir):
 
     humos_result = torch.load(humos_path, map_location=device)
 
-    text = humos_result["text"][0]
-    motion_name = safe_prefix_filename(text)
+    motion_id = Path(humos_path).stem
 
-    for gender in ["male", "female", "neutral"]:
+    for gender in ["male", "female"]:
 
         for beta_key, humos_motion_data in humos_result[gender].items():
 
@@ -176,7 +175,7 @@ def data_format_humos2phc(humos_path, output_dir):
             phc_motion["gender"] = gender
             phc_motion['fps'] = 20
 
-            motion_key = f"{motion_name}_{gender}_{beta_key}"
+            motion_key = f"{motion_id}_{gender}_{beta_key}"
             file_path = os.path.join(output_dir, f"{motion_key}.pkl")
 
             print(f"dumping {file_path}")
