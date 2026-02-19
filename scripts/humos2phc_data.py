@@ -90,7 +90,7 @@ def safe_prefix_filename(text: str, n: int = 24) -> str:
     return s or "untitled"
 
 
-def calc_pose_quat(pose_aa, root_trans, device):
+def calc_pose_quat(gender, beta_key, pose_aa, root_trans, device):
 
     N = pose_aa.shape[0]
 
@@ -105,7 +105,7 @@ def calc_pose_quat(pose_aa, root_trans, device):
     # print(pose_quat.shape)
 
     skeleton_tree = SkeletonTree.from_mjcf(
-        os.path.join("/home/hlz/repos/ASE/ase/data/assets/mjcf/smpl/0a1ece18_smpl.xml")
+        os.path.join(f"/home/hlz/repos/ASE/ase/data/assets/mjcf/smpl/{gender}_{beta_key}_smpl.xml")
     )
 
     root_trans_offset = root_trans + skeleton_tree.local_translation[0].to(device)
@@ -162,7 +162,7 @@ def data_format_humos2phc(humos_path, output_dir):
 
             phc_motion["pose_aa"] = phc_motion["pose_aa"].reshape(n_frame, -1)
 
-            root_trans_offset, pose_quat, pose_quat_global = calc_pose_quat(phc_motion["pose_aa"], phc_motion["trans_orig"], device)
+            root_trans_offset, pose_quat, pose_quat_global = calc_pose_quat(gender, beta_key, phc_motion["pose_aa"], phc_motion["trans_orig"], device)
 
             phc_motion['root_trans_offset'] = root_trans_offset
             phc_motion["pose_quat"] = pose_quat
@@ -171,6 +171,7 @@ def data_format_humos2phc(humos_path, output_dir):
             for k, v in phc_motion.items():
                 phc_motion[k] = v.to(torch.float32)
             
+            phc_motion["offset_height"] = humos_motion_data["offset_height"]
             phc_motion['beta_key'] = beta_key
             phc_motion["gender"] = gender
             phc_motion['fps'] = 20
