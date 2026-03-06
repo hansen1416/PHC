@@ -105,7 +105,7 @@ def calc_pose_quat(gender, beta_key, pose_aa, root_trans, device):
     # print(pose_quat.shape)
 
     skeleton_tree = SkeletonTree.from_mjcf(
-        os.path.join(f"/home/hlz/repos/ASE/ase/data/assets/mjcf/smpl/{gender}_{beta_key}_smpl.xml")
+        os.path.join(f"/home/hlz/repos/hhi/ase/data/assets/mjcf/smpl/{gender}_{beta_key}_smpl.xml")
     )
 
     root_trans_offset = root_trans + skeleton_tree.local_translation[0].to(device)
@@ -200,13 +200,6 @@ if __name__ == "__main__":
 
     output_dir = os.path.join(os.path.expanduser("~"), "datasets", "humos_results")
 
-    i = 0
-
     for file in files:
 
         data_format_humos2phc(file, output_dir)
-
-        i += 1
-
-        if i > 9:
-            break
