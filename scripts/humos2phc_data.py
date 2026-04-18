@@ -4,6 +4,9 @@ import re
 import unicodedata
 from glob import glob
 from pathlib import Path
+import io
+import pickle
+import subprocess
 
 sys.path.append(os.getcwd())
 
@@ -69,6 +72,8 @@ SMPL_BONE_ORDER_NAMES = [
     "R_Hand",
 ]
 
+RCLONE_REMOTE_DIR = "gdrive:humos_phc_results"
+
 
 def safe_prefix_filename(text: str, n: int = 24) -> str:
     """
@@ -131,7 +136,7 @@ def calc_pose_quat(gender, beta_key, pose_aa, root_trans, device):
 
 
 
-def data_format_humos2phc(humos_path, output_dir):
+def data_format_humos2phc(humos_path):
 
     # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     device = "cpu"
@@ -175,17 +180,34 @@ def data_format_humos2phc(humos_path, output_dir):
             phc_motion['fps'] = 20
 
             motion_key = f"{motion_id}_{gender}_{beta_key}"
-            file_path = os.path.join(output_dir, f"{motion_key}.pkl")
+            # file_path = os.path.join(output_dir, f"{motion_key}.pkl")
 
-            print(f"dumping {file_path}")
+            # print(f"dumping {file_path}")
 
-            joblib.dump(
-                {f"{motion_key}": phc_motion},
-                file_path
-            )
+            # joblib.dump(
+            #     {f"{motion_key}": phc_motion},
+            #     file_path
+            # )
 
+            remote_file = f"{RCLONE_REMOTE_DIR}/{motion_key}.pkl"
+
+            upload_pkl_with_rclone({f"{motion_key}": phc_motion}, remote_file)
+
+
+def upload_pkl_with_rclone(obj, remote_file):
+    buf = io.BytesIO()
+    pickle.dump(obj, buf, protocol=pickle.HIGHEST_PROTOCOL)
+    data = buf.getvalue()
+
+    subprocess.run(
+        ["rclone", "rcat", "--retries", "3", remote_file],
+        input=data,
+        check=True,
+    )
 
 if __name__ == "__main__":
+
+    from tqdm import tqdm
 
     folder = os.path.join(
         os.path.expanduser("~"),
@@ -194,10 +216,9 @@ if __name__ == "__main__":
 
     pattern = os.path.join(folder, "**", f"*.pt")
     files = glob(pattern, recursive=True)
+    files = sorted(files)
 
-
-    output_dir = os.path.join(os.path.expanduser("~"), "datasets", "humos_results")
-
-    for file in files:
-
-        data_format_humos2phc(file, output_dir)
+    pbar = tqdm(files, desc="t", unit="file")
+    for file in pbar:
+        pbar.set_postfix_str(os.path.basename(file))
+        data_format_humos2phc(file)
