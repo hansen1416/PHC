@@ -146,9 +146,7 @@ def data_format_humos2phc(humos_path, output_dir):
 
             n_frame = humos_motion_data["trans"].shape[0]
 
-            phc_motion = {
-                
-            }
+            phc_motion = {}
 
             phc_motion['beta'] = humos_motion_data["betas"][0]
 
