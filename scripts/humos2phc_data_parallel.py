@@ -248,7 +248,7 @@ def process_one_file(
         pass
 
     device = "cpu"
-    humos_result = torch.load(humos_path, map_location=device)
+    humos_result = torch.load(humos_path, map_location=device, weights_only=False)
     motion_id = Path(humos_path).stem
 
     uploaded = 0
