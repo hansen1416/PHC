@@ -340,6 +340,8 @@ def main() -> None:
     total_outputs = 0
     failures: List[Tuple[str, str]] = []
 
+    processed_log = os.path.join("/", "home","hlz","repos","PHC", "processed_motion_ids.txt")
+
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
         future_to_file = {
             executor.submit(
@@ -352,20 +354,26 @@ def main() -> None:
             for humos_path in files
         }
 
-        with tqdm(total=len(files), desc="humos2phc", unit="file") as pbar:
-            for future in as_completed(future_to_file):
-                humos_path = future_to_file[future]
-                try:
-                    result = future.result()
-                    total_outputs += result["uploaded"]
-                    pbar.set_postfix_str(
-                        f"{os.path.basename(humos_path)} -> {result['uploaded']} outputs"
-                    )
-                except Exception as exc:
-                    failures.append((humos_path, repr(exc)))
-                    pbar.set_postfix_str(f"FAILED: {os.path.basename(humos_path)}")
-                finally:
-                    pbar.update(1)
+        with open(processed_log, "a", encoding="utf-8") as f_log:
+            with tqdm(total=len(files), desc="humos2phc", unit="file") as pbar:
+                for future in as_completed(future_to_file):
+                    humos_path = future_to_file[future]
+                    try:
+                        result = future.result()
+                        total_outputs += result["uploaded"]
+
+                        motion_id = Path(humos_path).stem
+                        f_log.write(motion_id + "\n")
+                        f_log.flush()
+
+                        pbar.set_postfix_str(
+                            f"{os.path.basename(humos_path)} -> {result['uploaded']} outputs"
+                        )
+                    except Exception as exc:
+                        failures.append((humos_path, repr(exc)))
+                        pbar.set_postfix_str(f"FAILED: {os.path.basename(humos_path)}")
+                    finally:
+                        pbar.update(1)
 
     print(f"Completed files: {len(files) - len(failures)}/{len(files)}")
     print(f"Total outputs: {total_outputs}")
@@ -373,7 +381,7 @@ def main() -> None:
     if failures:
         print("Failures:")
         for humos_path, err in failures:
-            print(f"  - {humos_path}: {err}")
+            print(f" - {humos_path}: {err}")
         raise SystemExit(1)
 
 
