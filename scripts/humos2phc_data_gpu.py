@@ -173,6 +173,8 @@ def calc_pose_quat(gender, beta_key, pose_aa, root_trans, device):
 
     return root_trans_offset, pose_quat, pose_quat_global
 
+DEFAULT_INPUT_FOLDER = os.path.join("/mnt", "gdrive_humos_output")
+DEFAULT_OUTPUT_DIR = os.path.join("/home", "hlz/datasets/humos_results_full")
 
 def data_format_humos2phc(humos_path):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -224,31 +226,28 @@ def data_format_humos2phc(humos_path):
                 phc_motion["fps"] = 20
 
                 motion_key = f"{motion_id}_{gender}_{beta_key}"
-                remote_file = f"{RCLONE_REMOTE_DIR}/{motion_key}.pkl"
-                upload_pkl_with_rclone({motion_key: phc_motion}, remote_file)
+                output_file = os.path.join(DEFAULT_OUTPUT_DIR, f"{motion_key}.pkl")
 
+                payload = {motion_key: phc_motion}
 
-def upload_pkl_with_rclone(obj, remote_file):
-    buf = io.BytesIO()
-    pickle.dump(obj, buf, protocol=pickle.HIGHEST_PROTOCOL)
-    data = buf.getvalue()
+                if False:
+                    save_pkl_local(payload, output_file)
 
-    subprocess.run(
-        ["rclone", "rcat", "--retries", "3", remote_file],
-        input=data,
-        check=True,
-    )
+                
+
+def save_pkl_local(obj: object, output_file: str) -> None:
+    # os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    with open(output_file, "wb") as f:
+        pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == "__main__":
     from tqdm import tqdm
 
-    folder = os.path.join(
-        os.path.expanduser("~"),
-        "repos/humos/output",
-    )
-    pattern = os.path.join(folder, "**", "*.pt")
+    pattern = os.path.join(DEFAULT_INPUT_FOLDER, "*.pt")
     files = sorted(glob(pattern, recursive=True))
+
+    files = files[:10000]
 
     pbar = tqdm(files, desc="t", unit="file")
     for file in pbar:
