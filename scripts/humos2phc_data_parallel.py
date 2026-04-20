@@ -70,13 +70,14 @@ SMPL_BONE_ORDER_NAMES = [
     "R_Hand",
 ]
 
-DEFAULT_REMOTE_DIR = "gdrive:humos_phc_results"
+# DEFAULT_REMOTE_DIR = "gdrive:humos_phc_results"
 # DEFAULT_INPUT_FOLDER = os.path.join(os.path.expanduser("~"), "repos/humos/output")
 # DEFAULT_ASSET_ROOT = os.path.join(
 #     os.path.expanduser("~"), "repos/hhi/ase/data/assets"
 # )
 
 DEFAULT_INPUT_FOLDER = os.path.join("/mnt", "gdrive_humos_output")
+DEFAULT_OUTPUT_DIR = os.path.join("/root", "humos_phc_results")
 DEFAULT_ASSET_ROOT = os.path.join("/root", "hhi", "ase", "data", "assets")
 
 # Per-process cache.
@@ -88,6 +89,10 @@ _SMPL_TO_MUJOCO = [
 ]
 _UPRIGHT_QUAT_INV = torch.tensor([-0.5, -0.5, -0.5, 0.5], dtype=torch.float32)
 
+def save_pkl_local(obj: object, output_file: str) -> None:
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    with open(output_file, "wb") as f:
+        pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 def safe_prefix_filename(text: str, n: int = 24) -> str:
     if not isinstance(text, str):
@@ -240,7 +245,7 @@ def upload_pkl_with_rclone_bytes(data: bytes, remote_file: str) -> None:
 def process_one_file(
     humos_path: str,
     asset_root: str,
-    remote_dir: str,
+    output_dir: str,
     dry_run: bool = False,
 ) -> dict:
     # Avoid CPU oversubscription when multiple worker processes are active.
@@ -254,7 +259,7 @@ def process_one_file(
     humos_result = torch.load(humos_path, map_location=device, weights_only=False)
     motion_id = Path(humos_path).stem
 
-    uploaded = 0
+    saved = 0
     outputs: List[str] = []
 
     for gender in ["male", "female"]:
@@ -269,26 +274,27 @@ def process_one_file(
                 device=device,
                 asset_root=asset_root,
             )
+
             motion_key = f"{motion_id}_{gender}_{beta_key}"
-            remote_file = f"{remote_dir}/{motion_key}.pkl"
+            output_file = os.path.join(output_dir, f"{motion_key}.pkl")
             payload = {motion_key: phc_motion}
 
             if not dry_run:
-                upload_pkl_with_rclone_bytes(pickle_to_bytes(payload), remote_file)
+                save_pkl_local(payload, output_file)
 
-            uploaded += 1
+            saved += 1
             outputs.append(motion_key)
 
     return {
         "file": humos_path,
-        "uploaded": uploaded,
+        "saved": saved,
         "outputs": outputs,
     }
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Convert HUMOS .pt files to PHC .pkl and upload them in parallel."
+        description="Convert HUMOS .pt files to PHC .pkl and save them locally in parallel."
     )
     parser.add_argument(
         "--input-folder",
@@ -301,9 +307,9 @@ def parse_args() -> argparse.Namespace:
         help="ASE asset root that contains mjcf/smpl/*.xml.",
     )
     parser.add_argument(
-        "--remote-dir",
-        default=DEFAULT_REMOTE_DIR,
-        help="Rclone remote directory, for example gdrive:humos_phc_results.",
+        "--output-dir",
+        default=DEFAULT_OUTPUT_DIR,
+        help="Local output directory for PHC .pkl files.",
     )
     parser.add_argument(
         "--pattern",
@@ -319,7 +325,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Convert only; do not upload with rclone.",
+        help="Convert only; do not save output files.",
     )
     return parser.parse_args()
 
@@ -336,7 +342,7 @@ def main() -> None:
     print(f"Found {len(files)} files")
     print(f"Using {args.workers} worker processes")
     print(f"Asset root: {args.asset_root}")
-    print(f"Remote dir: {args.remote_dir}")
+    print(f"Output dir: {args.output_dir}")
 
     from tqdm import tqdm
 
@@ -351,7 +357,7 @@ def main() -> None:
                 process_one_file,
                 humos_path,
                 args.asset_root,
-                args.remote_dir,
+                args.output_dir,
                 args.dry_run,
             ): humos_path
             for humos_path in files
@@ -363,14 +369,12 @@ def main() -> None:
                     humos_path = future_to_file[future]
                     try:
                         result = future.result()
-                        total_outputs += result["uploaded"]
-
+                        total_outputs += result["saved"]
                         motion_id = Path(humos_path).stem
                         f_log.write(motion_id + "\n")
                         f_log.flush()
-
                         pbar.set_postfix_str(
-                            f"{os.path.basename(humos_path)} -> {result['uploaded']} outputs"
+                            f"{os.path.basename(humos_path)} -> {result['saved']} outputs"
                         )
                     except Exception as exc:
                         failures.append((humos_path, repr(exc)))
