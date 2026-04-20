@@ -20,6 +20,8 @@ Create gdrive credential for rlone: https://www.youtube.com/watch?v=Ze17oPwx6C0
 # To check the total file number and size of remote folder
 
 `rclone size gdrive:humos_phc_results`
+`rclone lsf gdrive:humos_phc_results -R --files-only | wc -l`
+`rclone lsf -R --files-only --fast-list gdrive:humos_phc_results | wc -l`
 
 eg.
 *Total objects: 12345*

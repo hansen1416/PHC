@@ -71,10 +71,13 @@ SMPL_BONE_ORDER_NAMES = [
 ]
 
 DEFAULT_REMOTE_DIR = "gdrive:humos_phc_results"
-DEFAULT_INPUT_FOLDER = os.path.join(os.path.expanduser("~"), "repos/humos/output")
-DEFAULT_ASSET_ROOT = os.path.join(
-    os.path.expanduser("~"), "repos/hhi/ase/data/assets"
-)
+# DEFAULT_INPUT_FOLDER = os.path.join(os.path.expanduser("~"), "repos/humos/output")
+# DEFAULT_ASSET_ROOT = os.path.join(
+#     os.path.expanduser("~"), "repos/hhi/ase/data/assets"
+# )
+
+DEFAULT_INPUT_FOLDER = os.path.join("/mnt", "gdrive_humos_output")
+DEFAULT_ASSET_ROOT = os.path.join("/root", "hhi", "ase", "data", "assets")
 
 # Per-process cache.
 _SKELETON_TREE_CACHE: Dict[Tuple[str, str, str], SkeletonTree] = {}
@@ -324,7 +327,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    pattern = os.path.join(args.input_folder, "**", args.pattern)
+    pattern = os.path.join(args.input_folder, args.pattern)
     files = sorted(glob(pattern, recursive=True))
     if not files:
         print(f"No files found under: {pattern}")
@@ -340,7 +343,7 @@ def main() -> None:
     total_outputs = 0
     failures: List[Tuple[str, str]] = []
 
-    processed_log = os.path.join("/", "home","hlz","repos","PHC", "processed_motion_ids.txt")
+    processed_log = os.path.join("/root", "PHC", "processed_motion_ids.txt")
 
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
         future_to_file = {
