@@ -70,15 +70,15 @@ SMPL_BONE_ORDER_NAMES = [
     "R_Hand",
 ]
 
-# DEFAULT_REMOTE_DIR = "gdrive:humos_phc_results"
-# DEFAULT_INPUT_FOLDER = os.path.join(os.path.expanduser("~"), "repos/humos/output")
-# DEFAULT_ASSET_ROOT = os.path.join(
-#     os.path.expanduser("~"), "repos/hhi/ase/data/assets"
-# )
-
 DEFAULT_INPUT_FOLDER = os.path.join("/mnt", "gdrive_humos_output")
-DEFAULT_OUTPUT_DIR = os.path.join("/root", "humos_phc_results")
-DEFAULT_ASSET_ROOT = os.path.join("/root", "hhi", "ase", "data", "assets")
+DEFAULT_OUTPUT_DIR = os.path.join("/home", "hlz/datasets/humos_results_full")
+DEFAULT_ASSET_ROOT = os.path.join(
+    os.path.expanduser("~"), "repos/hhi/ase/data/assets"
+)
+
+# DEFAULT_INPUT_FOLDER = os.path.join("/mnt", "gdrive_humos_output")
+# DEFAULT_OUTPUT_DIR = os.path.join("/root", "humos_phc_results")
+# DEFAULT_ASSET_ROOT = os.path.join("/root", "hhi", "ase", "data", "assets")
 
 # Per-process cache.
 _SKELETON_TREE_CACHE: Dict[Tuple[str, str, str], SkeletonTree] = {}
@@ -90,7 +90,7 @@ _SMPL_TO_MUJOCO = [
 _UPRIGHT_QUAT_INV = torch.tensor([-0.5, -0.5, -0.5, 0.5], dtype=torch.float32)
 
 def save_pkl_local(obj: object, output_file: str) -> None:
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    # os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, "wb") as f:
         pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -338,6 +338,8 @@ def main() -> None:
     if not files:
         print(f"No files found under: {pattern}")
         return
+    
+    files = files[:10000]
 
     print(f"Found {len(files)} files")
     print(f"Using {args.workers} worker processes")
@@ -349,7 +351,10 @@ def main() -> None:
     total_outputs = 0
     failures: List[Tuple[str, str]] = []
 
-    processed_log = os.path.join("/root", "PHC", "processed_motion_ids.txt")
+    # processed_log = os.path.join("/root", "PHC", "processed_motion_ids.txt")
+    processed_log = os.path.join(
+        os.path.expanduser("~"), "repos/PHC", "processed_motion_ids.txt"
+    )
 
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
         future_to_file = {

@@ -20,6 +20,7 @@ rclone config
 mkdir /mnt/gdrive_humos_output
 
 git clone https://github.com/hansen1416/PHC.git
+git clone https://github.com/hansen1416/hhi.git
 
 conda create -n phc python=3.8 -y
 
@@ -33,7 +34,7 @@ rclone mount gdrive:humos_output /mnt/gdrive_humos_output --read-only --vfs-cach
 
 tmux new -s humos
 
-python scripts/humos2phc_data_parallel.py --workers 32 2>&1 | tee humos2phc.log
+python scripts/humos2phc_data_parallel.py --workers 16 2>&1 | tee humos2phc.log
 
 
 # Then detach from tmux by pressing:
