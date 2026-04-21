@@ -319,7 +319,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--workers",
         type=int,
-        default=max(1, min(8, (os.cpu_count() or 1) // 2 or 1)),
+        default=max(1, min(24, (os.cpu_count() or 1) // 2 or 1)),
         help="Number of worker processes.",
     )
     parser.add_argument(
@@ -346,12 +346,10 @@ def main() -> None:
     print(f"Asset root: {args.asset_root}")
     print(f"Output dir: {args.output_dir}")
 
-    from tqdm import tqdm
-
+    # === UPDATED SECTION (no tqdm) ===
     total_outputs = 0
     failures: List[Tuple[str, str]] = []
 
-    # processed_log = os.path.join("/root", "PHC", "processed_motion_ids.txt")
     processed_log = os.path.join(
         os.path.expanduser("~"), "repos/PHC", "processed_motion_ids.txt"
     )
@@ -368,33 +366,24 @@ def main() -> None:
             for humos_path in files
         }
 
+        processed_count = 0
         with open(processed_log, "a", encoding="utf-8") as f_log:
-            with tqdm(total=len(files), desc="humos2phc", unit="file") as pbar:
-                for future in as_completed(future_to_file):
-                    humos_path = future_to_file[future]
-                    try:
-                        result = future.result()
-                        total_outputs += result["saved"]
-                        motion_id = Path(humos_path).stem
-                        f_log.write(motion_id + "\n")
-                        f_log.flush()
-                        pbar.set_postfix_str(
-                            f"{os.path.basename(humos_path)} -> {result['saved']} outputs"
-                        )
-                    except Exception as exc:
-                        failures.append((humos_path, repr(exc)))
-                        pbar.set_postfix_str(f"FAILED: {os.path.basename(humos_path)}")
-                    finally:
-                        pbar.update(1)
+            for future in as_completed(future_to_file):
+                humos_path = future_to_file[future]
+                try:
+                    result = future.result()
+                    total_outputs += result["saved"]
+                    motion_id = Path(humos_path).stem
+                    f_log.write(motion_id + "\n")
+                    f_log.flush()
+                except Exception as exc:
+                    failures.append((humos_path, repr(exc)))
+                finally:
+                    processed_count += 1
+                    print(processed_count)   # <-- ONLY the number, as requested
 
     print(f"Completed files: {len(files) - len(failures)}/{len(files)}")
     print(f"Total outputs: {total_outputs}")
-
-    if failures:
-        print("Failures:")
-        for humos_path, err in failures:
-            print(f" - {humos_path}: {err}")
-        raise SystemExit(1)
 
 
 if __name__ == "__main__":

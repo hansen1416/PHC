@@ -173,14 +173,19 @@ def calc_pose_quat(gender, beta_key, pose_aa, root_trans, device):
 
     return root_trans_offset, pose_quat, pose_quat_global
 
-DEFAULT_INPUT_FOLDER = os.path.join("/mnt", "gdrive_humos_output")
-DEFAULT_OUTPUT_DIR = os.path.join("/home", "hlz/datasets/humos_results_full")
+# DEFAULT_INPUT_FOLDER = os.path.join("/mnt", "gdrive_humos_output")
+DEFAULT_INPUT_FOLDER = os.path.join(os.path.expanduser("~"), "datasets", "humos_output_part1")
+DEFAULT_OUTPUT_DIR = os.path.join(os.path.expanduser("~"), "datasets", "humos_phc_results_part1")
 
 def data_format_humos2phc(humos_path):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     humos_result = torch.load(humos_path, map_location=device, weights_only=False)
     motion_id = Path(humos_path).stem
+
+    output_dir = os.path.join(DEFAULT_OUTPUT_DIR, motion_id)
+
+    os.makedirs(output_dir, exist_ok=True)
 
     with torch.inference_mode():
         for gender in ["male", "female"]:
@@ -226,11 +231,11 @@ def data_format_humos2phc(humos_path):
                 phc_motion["fps"] = 20
 
                 motion_key = f"{motion_id}_{gender}_{beta_key}"
-                output_file = os.path.join(DEFAULT_OUTPUT_DIR, f"{motion_key}.pkl")
+                output_file = os.path.join(output_dir, f"{gender}_{beta_key}.pkl")
 
                 payload = {motion_key: phc_motion}
 
-                if False:
+                if True:
                     save_pkl_local(payload, output_file)
 
                 
@@ -242,14 +247,36 @@ def save_pkl_local(obj: object, output_file: str) -> None:
 
 
 if __name__ == "__main__":
-    from tqdm import tqdm
-
+    
     pattern = os.path.join(DEFAULT_INPUT_FOLDER, "*.pt")
     files = sorted(glob(pattern, recursive=True))
 
-    files = files[:10000]
+    processed_log = os.path.join(
+        os.path.expanduser("~"), "repos", "PHC", "processed_humos_gpu.txt"
+    )
 
-    pbar = tqdm(files, desc="t", unit="file")
-    for file in pbar:
-        pbar.set_postfix_str(os.path.basename(file))
-        data_format_humos2phc(file)
+    processed_count = 0
+    failures = 0
+
+    print(f"Starting HUMOS → PHC conversion (hhi project) on {len(files)} files")
+
+    for file in files:
+        try:
+            data_format_humos2phc(file)
+            motion_id = Path(file).stem
+
+            # Record processed file
+            with open(processed_log, "a", encoding="utf-8") as f_log:
+                f_log.write(motion_id + "\n")
+                f_log.flush()
+
+            processed_count += 1
+            print(processed_count)   # <-- ONLY the number, as requested
+
+        except Exception as e:
+            failures += 1
+            print(f"ERROR processing {os.path.basename(file)}: {e}", file=sys.stderr)
+
+    print(f"\n=== DONE ===")
+    print(f"Processed: {processed_count} | Failures: {failures}")
+    print(f"Record saved to: {processed_log}")
