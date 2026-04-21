@@ -26,3 +26,22 @@ Create gdrive credential for rlone: https://www.youtube.com/watch?v=Ze17oPwx6C0
 eg.
 *Total objects: 12345*
 *Total size: 6.789 GiB (7289123456 bytes)*
+
+# delete files in drive
+
+rclone delete gdrive:humos_phc_results/ --fast-list --progress --transfers=32 --checkers=64
+
+# copy local folder to drive
+
+rclone copy /home/hlz/datasets/humos_phc_results_part1 gdrive:humos_phc_results/ \
+  --dry-run \
+  --progress \
+  --transfers=32 \
+  --checkers=64 \
+  --drive-chunk-size=256M \
+  --fast-list
+
+
+# copy remote folder to local
+
+rclone copy   gdrive:humos_output  /home/hlz/datasets/humos_output_part1   --files-from=/home/hlz/repos/PHC/cmd/all_humos_part1.txt   --progress   --transfers=32   --checkers=64   --drive-chunk-size=256M   --fast-list
