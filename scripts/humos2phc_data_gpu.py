@@ -7,6 +7,7 @@ from pathlib import Path
 import io
 import pickle
 import subprocess
+import argparse
 
 sys.path.append(os.getcwd())
 
@@ -173,11 +174,8 @@ def calc_pose_quat(gender, beta_key, pose_aa, root_trans, device):
 
     return root_trans_offset, pose_quat, pose_quat_global
 
-# DEFAULT_INPUT_FOLDER = os.path.join("/mnt", "gdrive_humos_output")
-DEFAULT_INPUT_FOLDER = os.path.join(os.path.expanduser("~"), "datasets", "humos_output_part2")
-DEFAULT_OUTPUT_DIR = os.path.join("/media", "hlz", "斐妮丫", "humos_phc_results_part2")
 
-def data_format_humos2phc(humos_path):
+def data_format_humos2phc(humos_path, DEFAULT_OUTPUT_DIR):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     humos_result = torch.load(humos_path, map_location=device, weights_only=False)
@@ -238,7 +236,6 @@ def data_format_humos2phc(humos_path):
                 if True:
                     save_pkl_local(payload, output_file)
 
-                
 
 def save_pkl_local(obj: object, output_file: str) -> None:
     # os.makedirs(os.path.dirname(output_file), exist_ok=True)
@@ -247,7 +244,27 @@ def save_pkl_local(obj: object, output_file: str) -> None:
 
 
 if __name__ == "__main__":
-    
+    parser = argparse.ArgumentParser(
+        description="HUMOS → PHC data conversion (part of hhi project). "
+                    "Accepts a single integer argument indicating which HUMOS output part to process."
+    )
+    parser.add_argument(
+        "part",
+        type=int,
+        help="Part number (e.g. 1, 2, 3, ...) - used to build humos_output_partN and humos_phc_results_partN paths"
+    )
+    args = parser.parse_args()
+
+    part = args.part
+
+    # Dynamically set paths based on the part number (this replaces the previous hardcoded part2)
+    DEFAULT_INPUT_FOLDER = os.path.join(
+        os.path.expanduser("~"), "datasets", f"humos_output_part{part}"
+    )
+    DEFAULT_OUTPUT_DIR = os.path.join(
+        "/media", "hlz", "斐妮丫", f"humos_phc_results_part{part}"
+    )
+
     pattern = os.path.join(DEFAULT_INPUT_FOLDER, "*.pt")
     files = sorted(glob(pattern, recursive=True))
 
@@ -258,11 +275,13 @@ if __name__ == "__main__":
     processed_count = 0
     failures = 0
 
-    print(f"Starting HUMOS → PHC conversion (hhi project) on {len(files)} files")
+    print(f"Starting HUMOS → PHC conversion (hhi project - PART {part}) on {len(files)} files")
+    print(f"Input  folder: {DEFAULT_INPUT_FOLDER}")
+    print(f"Output folder: {DEFAULT_OUTPUT_DIR}")
 
     for file in files:
         try:
-            data_format_humos2phc(file)
+            data_format_humos2phc(file, DEFAULT_OUTPUT_DIR)
             motion_id = Path(file).stem
 
             # Record processed file
@@ -277,6 +296,6 @@ if __name__ == "__main__":
             failures += 1
             print(f"ERROR processing {os.path.basename(file)}: {e}", file=sys.stderr)
 
-    print(f"\n=== DONE ===")
+    print(f"\n=== DONE (PART {part}) ===")
     print(f"Processed: {processed_count} | Failures: {failures}")
     print(f"Record saved to: {processed_log}")
