@@ -1,3 +1,11 @@
+# just run 
+`python scripts/humos2phc_data_gpu.py`, the speed is ok,
+
+it will save evrtyhing to external drive, we will upload them to googledrive later
+
+-------------------
+
+
 sudo -v ; curl https://rclone.org/install.sh | sudo bash
 
 rclone config

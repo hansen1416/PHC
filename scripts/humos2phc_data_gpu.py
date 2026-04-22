@@ -174,8 +174,8 @@ def calc_pose_quat(gender, beta_key, pose_aa, root_trans, device):
     return root_trans_offset, pose_quat, pose_quat_global
 
 # DEFAULT_INPUT_FOLDER = os.path.join("/mnt", "gdrive_humos_output")
-DEFAULT_INPUT_FOLDER = os.path.join(os.path.expanduser("~"), "datasets", "humos_output_part1")
-DEFAULT_OUTPUT_DIR = os.path.join(os.path.expanduser("~"), "datasets", "humos_phc_results_part1")
+DEFAULT_INPUT_FOLDER = os.path.join(os.path.expanduser("~"), "datasets", "humos_output_part2")
+DEFAULT_OUTPUT_DIR = os.path.join("/media", "hlz", "斐妮丫", "humos_phc_results_part2")
 
 def data_format_humos2phc(humos_path):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

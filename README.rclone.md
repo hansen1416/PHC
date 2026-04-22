@@ -27,6 +27,10 @@ eg.
 *Total objects: 12345*
 *Total size: 6.789 GiB (7289123456 bytes)*
 
+# mount to loca, actually not very efective
+
+rclone mount gdrive:humos_output /mnt/gdrive_humos_output --read-only --vfs-cache-mode off --buffer-size 40M -vv
+
 # delete files in drive
 
 rclone delete gdrive:humos_phc_results/ --fast-list --progress --transfers=32 --checkers=64
@@ -41,6 +45,11 @@ rclone copy /home/hlz/datasets/humos_phc_results_part1 gdrive:humos_phc_results/
   --drive-chunk-size=256M \
   --fast-list
 
+
+cd /home/hlz/datasets
+
+tar -cf - humos_phc_results_part1 \
+  | split -b 40G -d -a 2 --filter='rclone rcat --progress --drive-chunk-size=256M gdrive:humos_phc_results/humos_phc_results_part1.tar.$FILE' -
 
 # copy remote folder to local
 
