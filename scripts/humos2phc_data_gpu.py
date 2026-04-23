@@ -262,7 +262,7 @@ if __name__ == "__main__":
         os.path.expanduser("~"), "datasets", f"humos_output_part{part}"
     )
     DEFAULT_OUTPUT_DIR = os.path.join(
-        "/media", "hlz", "斐妮丫", f"humos_phc_results_part{part}"
+        "/media", "hlz", "R", f"humos_phc_results_part{part}"
     )
 
     pattern = os.path.join(DEFAULT_INPUT_FOLDER, "*.pt")
